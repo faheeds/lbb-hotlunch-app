@@ -123,17 +123,32 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
   const selectedChild = children.find((c) => c.id === selectedChildId);
 
   // Build list of upcoming weekdays for the selected child.
-  // Each entry maps a weekday number (1-5) to its concrete delivery date for this child's school.
+  // One entry per weekday (1-5): keep the earliest orderable delivery date so we
+  // don't show two Wednesdays when the ordering window spans two calendar weeks —
+  // the weekly-checkout flow matches each plan to the earliest delivery date for
+  // that weekday, so we mirror that here. Sorted chronologically by actual date.
   const availableDaysForChild = useMemo(() => {
     if (!selectedChild) return [] as { weekday: number; deliveryDate: DeliveryDate }[];
-    const datesForSchool = deliveryDates.filter((d) => d.schoolId === selectedChild.schoolId);
-    return datesForSchool
+    const datesForSchool = deliveryDates
+      .filter((d) => d.schoolId === selectedChild.schoolId)
       .map((date) => ({
         weekday: getWeekdayNumber(new Date(date.deliveryDate), date.school.timezone),
         deliveryDate: date
       }))
       .filter((entry) => entry.weekday >= 1 && entry.weekday <= 5)
-      .sort((a, b) => a.weekday - b.weekday);
+      .sort(
+        (a, b) =>
+          new Date(a.deliveryDate.deliveryDate).getTime() - new Date(b.deliveryDate.deliveryDate).getTime()
+      );
+
+    const byWeekday = new Map<number, { weekday: number; deliveryDate: DeliveryDate }>();
+    for (const entry of datesForSchool) {
+      if (!byWeekday.has(entry.weekday)) byWeekday.set(entry.weekday, entry);
+    }
+    return Array.from(byWeekday.values()).sort(
+      (a, b) =>
+        new Date(a.deliveryDate.deliveryDate).getTime() - new Date(b.deliveryDate.deliveryDate).getTime()
+    );
   }, [deliveryDates, selectedChild]);
 
   const activeDay = availableDaysForChild.find((d) => d.weekday === selectedWeekday) ?? null;
@@ -304,7 +319,7 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
                 const active = selectedWeekday === weekday;
                 return (
                   <button
-                    key={weekday}
+                    key={deliveryDate.id}
                     type="button"
                     onClick={() => handleSelectWeekday(weekday)}
                     className={cn(
@@ -317,6 +332,9 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
                     </p>
                     <p className={cn("text-[16px] font-semibold leading-none mt-0.5", active ? "text-brand-900" : "text-ink")}>
                       {formatInTimeZone(deliveryDate.deliveryDate, tz, "d")}
+                    </p>
+                    <p className={cn("text-[9px] mt-0.5 uppercase tracking-wide", active ? "text-brand-700" : "text-slate-400")}>
+                      {formatInTimeZone(deliveryDate.deliveryDate, tz, "MMM")}
                     </p>
                     <p className={cn("text-[9px] mt-0.5", active ? "text-brand-700" : "text-slate-400")}>
                       {count ? `${count} set` : "Open"}
