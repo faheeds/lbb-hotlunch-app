@@ -60,7 +60,7 @@ export default async function AdminSchoolsPage() {
             </div>
             <div>
               <label className="text-[11px] text-slate-500 mb-1 block">Cutoff hour (24h)</label>
-              <input name="defaultCutoffHour" defaultValue="17" required
+              <input name="defaultCutoffHour" defaultValue="21" required
                 className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
             </div>
             <div>

@@ -140,7 +140,7 @@ async function main() {
       update: {
         name: "Medina Academy Redmond",
         timezone: "America/Los_Angeles",
-        defaultCutoffHour: 17,
+        defaultCutoffHour: 21,
         defaultCutoffMinute: 0,
         collectTeacher: false,
         collectClassroom: false,
@@ -150,7 +150,7 @@ async function main() {
         name: "Medina Academy Redmond",
         slug: "medina-academy-redmond",
         timezone: "America/Los_Angeles",
-        defaultCutoffHour: 17,
+        defaultCutoffHour: 21,
         defaultCutoffMinute: 0,
         collectTeacher: false,
         collectClassroom: false
@@ -161,8 +161,8 @@ async function main() {
       update: {
         name: "Medina Academy Bellevue",
         timezone: "America/Los_Angeles",
-        defaultCutoffHour: 16,
-        defaultCutoffMinute: 30,
+        defaultCutoffHour: 21,
+        defaultCutoffMinute: 0,
         collectTeacher: false,
         collectClassroom: false,
         isActive: true
@@ -171,8 +171,8 @@ async function main() {
         name: "Medina Academy Bellevue",
         slug: "medina-academy-bellevue",
         timezone: "America/Los_Angeles",
-        defaultCutoffHour: 16,
-        defaultCutoffMinute: 30,
+        defaultCutoffHour: 21,
+        defaultCutoffMinute: 0,
         collectTeacher: false,
         collectClassroom: false
       }
@@ -497,23 +497,30 @@ async function main() {
         }
       });
 
-      for (const item of items) {
-        await prisma.deliveryMenuItem.upsert({
-          where: {
-            deliveryDateId_menuItemId: {
+      // Neon (pooler + scale-to-zero) occasionally drops the connection after a
+      // long series of sequential single-row upserts — the seed used to die
+      // here with P1017 ("Server has closed the connection") ~halfway through.
+      // Batch all menu-item upserts for this delivery date into one
+      // interactive transaction so it's a single round trip using one session.
+      await prisma.$transaction(
+        items.map((item) =>
+          prisma.deliveryMenuItem.upsert({
+            where: {
+              deliveryDateId_menuItemId: {
+                deliveryDateId: dateRecord.id,
+                menuItemId: item.id
+              }
+            },
+            update: {},
+            create: {
+              schoolId: school.id,
               deliveryDateId: dateRecord.id,
-              menuItemId: item.id
+              menuItemId: item.id,
+              isAvailable: true
             }
-          },
-          update: {},
-          create: {
-            schoolId: school.id,
-            deliveryDateId: dateRecord.id,
-            menuItemId: item.id,
-            isAvailable: true
-          }
-        });
-      }
+          })
+        )
+      );
     }
   }
 }
