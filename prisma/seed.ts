@@ -1,15 +1,34 @@
 import bcrypt from "bcryptjs";
 import { addDays, set } from "date-fns";
-import { fromZonedTime } from "date-fns-tz";
+import { formatInTimeZone, fromZonedTime } from "date-fns-tz";
 import { PrismaClient, MenuOptionType } from "@prisma/client";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
 
 const prisma = new PrismaClient();
 
-function zonedDate(daysOut: number, hour = 9, minute = 0) {
+const SEED_TIMEZONE = "America/Los_Angeles";
+
+// Build a Pacific-calendar date N days from today. All offset math and weekday
+// checks must happen in the same frame (Pacific), or you get the old bug where
+// a seed run in the evening PT would mis-classify Saturdays as Fridays and
+// create weekend delivery dates.
+function zonedCalendarDay(daysOut: number) {
   const base = addDays(new Date(), daysOut);
-  const isoDay = base.toISOString().slice(0, 10);
-  return fromZonedTime(`${isoDay} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`, "America/Los_Angeles");
+  // The Pacific-local yyyy-MM-dd for that instant.
+  return formatInTimeZone(base, SEED_TIMEZONE, "yyyy-MM-dd");
+}
+
+function dayOfWeekInZone(daysOut: number) {
+  // date-fns-tz "i" token: 1 = Mon ... 7 = Sun.
+  return Number(formatInTimeZone(addDays(new Date(), daysOut), SEED_TIMEZONE, "i"));
+}
+
+function zonedDateAt(daysOut: number, hour = 9, minute = 0) {
+  const isoDay = zonedCalendarDay(daysOut);
+  return fromZonedTime(
+    `${isoDay} ${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00`,
+    SEED_TIMEZONE
+  );
 }
 
 function nextBusinessDayOffsets(count: number) {
@@ -17,9 +36,9 @@ function nextBusinessDayOffsets(count: number) {
   let daysOut = 1;
 
   while (offsets.length < count) {
-    const candidate = addDays(new Date(), daysOut);
-    const day = candidate.getDay();
-    if (day !== 0 && day !== 6) {
+    const weekday = dayOfWeekInZone(daysOut);
+    // 1-5 = Mon-Fri in the "i" token.
+    if (weekday >= 1 && weekday <= 5) {
       offsets.push(daysOut);
     }
     daysOut += 1;
@@ -450,7 +469,7 @@ async function main() {
 
   for (const school of schools) {
     for (const daysOut of deliveryOffsets) {
-      const deliveryDate = zonedDate(daysOut, 11, 0);
+      const deliveryDate = zonedDateAt(daysOut, 11, 0);
       const cutoffBase = addDays(deliveryDate, -1);
       const cutoffAt = set(cutoffBase, {
         hours: school.defaultCutoffHour,
