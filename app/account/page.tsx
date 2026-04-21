@@ -6,6 +6,7 @@ import { prisma } from "@/lib/db";
 import { signOut } from "@/lib/auth";
 import { requireParent } from "@/lib/parent-auth";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
+import { getUpcomingOrderingWindowRange } from "@/lib/weekly-week";
 import { SiteHeader } from "@/components/site-header";
 import { AppNav } from "@/components/app-nav";
 import { SubmitButton } from "@/components/forms/submit-button";
@@ -73,7 +74,7 @@ export default async function ParentAccountPage() {
     redirect("/account");
   }
 
-  const [parent, schools, menuItems, orders] = await Promise.all([
+  const [parent, schools, orders] = await Promise.all([
     prisma.parentUser.findUnique({
       where: { id: parentUserId },
       include: {
@@ -86,7 +87,6 @@ export default async function ParentAccountPage() {
       }
     }),
     prisma.school.findMany({ where: { isActive: true, slug: { in: [...ALLOWED_SCHOOL_SLUGS] } }, orderBy: { name: "asc" } }),
-    prisma.menuItem.findMany({ where: { isActive: true }, orderBy: { name: "asc" } }),
     prisma.order.findMany({
       where: { parentUserId, archivedAt: null },
       include: { school: true, deliveryDate: true, student: true, items: true },
@@ -96,6 +96,36 @@ export default async function ParentAccountPage() {
   ]);
 
   if (!parent) redirect("/account/sign-in");
+
+  // Mirror the /weekly page's delivery-date load so the inline planner only
+  // offers weekdays that actually have an open, pre-cutoff delivery.
+  const now = new Date();
+  const primaryTimezone = parent.children[0]?.school.timezone ?? "America/Los_Angeles";
+  const range = getUpcomingOrderingWindowRange(now, primaryTimezone);
+  const schoolIds = [...new Set(parent.children.map((c) => c.schoolId))];
+  const deliveryDates = schoolIds.length
+    ? await prisma.deliveryDate.findMany({
+        where: {
+          schoolId: { in: schoolIds },
+          orderingOpen: true,
+          cutoffAt: { gt: now },
+          deliveryDate: { gte: range.start, lte: range.end },
+          school: { isActive: true, slug: { in: [...ALLOWED_SCHOOL_SLUGS] } }
+        },
+        include: {
+          school: true,
+          menuAvailability: {
+            where: { isAvailable: true, menuItem: { is: { isActive: true } } },
+            include: {
+              menuItem: {
+                include: { options: { orderBy: { sortOrder: "asc" } } }
+              }
+            }
+          }
+        },
+        orderBy: { deliveryDate: "asc" }
+      })
+    : [];
 
   const activeWeeklyPlanCount = parent.weeklyPlans.filter((p) => p.isActive).length;
 
@@ -201,9 +231,50 @@ export default async function ParentAccountPage() {
                 Set a default meal per weekday. One checkout covers the whole week.
               </p>
               <WeeklyPlanPlanner
-                children={parent.children.map((c) => ({ id: c.id, schoolId: c.schoolId, schoolName: c.school.name, studentName: c.studentName, grade: c.grade }))}
-                menuItems={menuItems.map((i) => ({ id: i.id, name: i.name, slug: i.slug, basePriceCents: i.basePriceCents }))}
-                existingPlans={parent.weeklyPlans.map((p) => ({ id: p.id, parentChildId: p.parentChildId, weekday: p.weekday, menuItemId: p.menuItemId, menuItemName: p.menuItem.name, choice: p.choice, isActive: p.isActive, sortOrder: p.sortOrder }))}
+                children={parent.children.map((c) => ({
+                  id: c.id,
+                  schoolId: c.schoolId,
+                  schoolName: c.school.name,
+                  timezone: c.school.timezone,
+                  studentName: c.studentName,
+                  grade: c.grade
+                }))}
+                deliveryDates={deliveryDates.map((date) => ({
+                  id: date.id,
+                  schoolId: date.schoolId,
+                  deliveryDate: date.deliveryDate.toISOString(),
+                  cutoffAt: date.cutoffAt.toISOString(),
+                  school: {
+                    id: date.school.id,
+                    name: date.school.name,
+                    timezone: date.school.timezone
+                  },
+                  menuItems: date.menuAvailability.map((entry) => ({
+                    id: entry.menuItem.id,
+                    slug: entry.menuItem.slug,
+                    name: entry.menuItem.name,
+                    description: entry.menuItem.description,
+                    basePriceCents: entry.menuItem.basePriceCents,
+                    options: entry.menuItem.options.map((o) => ({
+                      id: o.id,
+                      name: o.name,
+                      optionType: o.optionType,
+                      priceDeltaCents: o.priceDeltaCents
+                    }))
+                  }))
+                }))}
+                existingPlans={parent.weeklyPlans.map((p) => ({
+                  id: p.id,
+                  parentChildId: p.parentChildId,
+                  weekday: p.weekday,
+                  menuItemId: p.menuItemId,
+                  menuItemName: p.menuItem.name,
+                  choice: p.choice,
+                  additions: p.additions,
+                  removals: p.removals,
+                  isActive: p.isActive,
+                  sortOrder: p.sortOrder
+                }))}
               />
             </div>
           </section>
