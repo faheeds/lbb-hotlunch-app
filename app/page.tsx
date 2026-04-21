@@ -85,12 +85,12 @@ export default function HomePage() {
               <Link href="/order"
                 className="px-4 py-2.5 rounded-full text-[12px] font-semibold no-underline text-ink"
                 style={{ background: "#f97316", color: "white" }}>
-                Start ordering
+                Order single day
               </Link>
-              <Link href="/account"
+              <Link href="/weekly"
                 className="px-4 py-2.5 rounded-full text-[12px] font-semibold no-underline"
                 style={{ background: "rgba(255,255,255,0.08)", color: "white", border: "1px solid rgba(255,255,255,0.12)" }}>
-                My account
+                Plan the week
               </Link>
             </div>
           </div>
