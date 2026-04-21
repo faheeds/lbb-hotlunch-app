@@ -39,14 +39,28 @@ async function attachMenuItems(formData: FormData) {
   "use server";
   const deliveryDateId = String(formData.get("deliveryDateId"));
   const schoolId = String(formData.get("schoolId"));
-  const menuItemIds = formData.getAll("menuItemIds").map(String);
-  for (const menuItemId of menuItemIds) {
-    await prisma.deliveryMenuItem.upsert({
-      where: { deliveryDateId_menuItemId: { deliveryDateId, menuItemId } },
-      update: { isAvailable: true },
-      create: { deliveryDateId, menuItemId, schoolId, isAvailable: true }
-    });
-  }
+  const submittedIds = new Set(formData.getAll("menuItemIds").map(String));
+
+  // The submitted checkbox list is the authoritative state: any active menu
+  // item in the set is available for this delivery date, everything else is
+  // unavailable. Without this, unchecking + saving would leave stale
+  // availability rows behind and the UI would re-render as still-checked.
+  const activeMenuItems = await prisma.menuItem.findMany({
+    where: { isActive: true },
+    select: { id: true }
+  });
+
+  await prisma.$transaction(
+    activeMenuItems.map((item) => {
+      const shouldBeAvailable = submittedIds.has(item.id);
+      return prisma.deliveryMenuItem.upsert({
+        where: { deliveryDateId_menuItemId: { deliveryDateId, menuItemId: item.id } },
+        update: { isAvailable: shouldBeAvailable },
+        create: { deliveryDateId, menuItemId: item.id, schoolId, isAvailable: shouldBeAvailable }
+      });
+    })
+  );
+
   revalidatePath("/admin/delivery-dates");
 }
 
@@ -55,7 +69,16 @@ export default async function DeliveryDatesPage() {
     prisma.school.findMany({ where: { isActive: true, slug: { in: [...ALLOWED_SCHOOL_SLUGS] } }, orderBy: { name: "asc" } }),
     prisma.deliveryDate.findMany({
       where: { school: { slug: { in: [...ALLOWED_SCHOOL_SLUGS] } } },
-      include: { school: true, menuAvailability: { include: { menuItem: true } } },
+      include: {
+        school: true,
+        // Only surface available rows — unchecked items keep a row with
+        // isAvailable=false so history is preserved, but the UI should treat
+        // them as detached.
+        menuAvailability: {
+          where: { isAvailable: true },
+          include: { menuItem: true }
+        }
+      },
       orderBy: { deliveryDate: "asc" }
     }),
     prisma.menuItem.findMany({ where: { isActive: true }, orderBy: { name: "asc" } })
