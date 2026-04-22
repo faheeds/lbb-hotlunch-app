@@ -5,7 +5,7 @@ import { AppNav } from "@/components/app-nav";
 
 const features = [
   { text: "Two campuses",    sub: "Redmond & Bellevue",           icon: "location" },
-  { text: "20+ menu items", sub: "Burgers, chicken & more",       icon: "menu"     },
+  { text: "20+ menu items", sub: "Burgers, salads, chicken & more", icon: "menu"     },
   { text: "Add Your Kids", sub: "Faster checkout every time",    icon: "child"    },
   { text: "Weekly planner", sub: "One checkout for the week",     icon: "calendar" },
 ];
