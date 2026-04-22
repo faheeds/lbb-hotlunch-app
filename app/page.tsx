@@ -73,16 +73,17 @@ export default function HomePage() {
                 textTransform: "uppercase", letterSpacing: "0.08em",
                 boxShadow: "0 4px 16px rgba(196,18,48,0.45)"
               }}>
-                Order Today
+                Order Single Day
               </Link>
               <Link href="/weekly" style={{
                 padding: "12px 20px", borderRadius: 100,
-                fontSize: 13, fontWeight: 600, textDecoration: "none",
-                background: "rgba(255,255,255,0.10)", color: "white",
-                border: "1.5px solid rgba(255,255,255,0.28)",
-                backdropFilter: "blur(8px)"
+                fontSize: 13, fontWeight: 700, textDecoration: "none",
+                background: "#f59e0b", color: "#1c0505",
+                fontFamily: "var(--font-oswald)",
+                textTransform: "uppercase", letterSpacing: "0.08em",
+                boxShadow: "0 4px 16px rgba(245,158,11,0.40)"
               }}>
-                Plan the week
+                Plan The Week
               </Link>
             </div>
           </div>
