@@ -11,7 +11,7 @@ const features = [
 ];
 
 const steps = [
-  { n: "1", title: "Pick school & date",  body: "Redmond (5 PM cutoff) or Bellevue (4:30 PM). Only open dates are shown." },
+  { n: "1", title: "Pick school & date",  body: "Redmond or Bellevue (9 PM cutoff). Only open dates are shown." },
   { n: "2", title: "Build your order",    body: "20+ items — burgers, chicken, salads & sides. Full customization." },
   { n: "3", title: "Pay & confirm",       body: "Secure Stripe checkout. Confirmation email sent right away." },
 ];

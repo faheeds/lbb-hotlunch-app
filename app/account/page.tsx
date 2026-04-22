@@ -10,6 +10,7 @@ import { getUpcomingOrderingWindowRange } from "@/lib/weekly-week";
 import { SiteHeader } from "@/components/site-header";
 import { AppNav } from "@/components/app-nav";
 import { SubmitButton } from "@/components/forms/submit-button";
+import { GradeSelect } from "@/components/forms/grade-select";
 import { WeeklyCheckoutButton } from "@/components/account/weekly-checkout-button";
 import { WeeklyPlanPlanner } from "@/components/account/weekly-plan-planner";
 import { Badge } from "@/components/ui";
@@ -181,13 +182,12 @@ export default async function ParentAccountPage() {
                   <summary className="px-4 py-2.5 text-[12px] text-brand-700 font-medium cursor-pointer list-none">Edit details</summary>
                   <form action={updateChild} className="px-4 pb-4 space-y-2">
                     <input type="hidden" name="childId" value={child.id} />
-                    <select name="schoolId" defaultValue={child.schoolId} className="w-full rounded-xl border-slate-200 text-[13px]">
-                      {schools.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                    </select>
-                    <div className="grid grid-cols-2 gap-2">
-                      <input name="studentName" defaultValue={child.studentName} placeholder="Name" className="rounded-xl border-slate-200 text-[13px]" required />
-                      <input name="grade" defaultValue={child.grade} placeholder="Grade" className="rounded-xl border-slate-200 text-[13px]" required />
-                    </div>
+                    <input name="studentName" defaultValue={child.studentName} placeholder="Name" className="w-full rounded-xl border-slate-200 text-[13px]" required />
+                    <GradeSelect
+                      schools={schools}
+                      defaultSchoolId={child.schoolId}
+                      defaultGrade={child.grade}
+                    />
                     <input name="allergyNotes" defaultValue={child.allergyNotes ?? ""} placeholder="Allergy notes" className="w-full rounded-xl border-slate-200 text-[13px]" />
                     <input name="dietaryNotes" defaultValue={child.dietaryNotes ?? ""} placeholder="Dietary notes" className="w-full rounded-xl border-slate-200 text-[13px]" />
                     <div className="flex gap-2 pt-1">
@@ -208,14 +208,8 @@ export default async function ParentAccountPage() {
                 <span className="text-base">+</span> Add a child
               </summary>
               <form action={addChild} className="px-4 pb-4 space-y-2 border-t border-slate-50 pt-3">
-                <select name="schoolId" className="w-full rounded-xl border-slate-200 text-[13px]" required>
-                  <option value="">Select school</option>
-                  {schools.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
-                </select>
-                <div className="grid grid-cols-2 gap-2">
-                  <input name="studentName" placeholder="Student name" className="rounded-xl border-slate-200 text-[13px]" required />
-                  <input name="grade" placeholder="Grade" className="rounded-xl border-slate-200 text-[13px]" required />
-                </div>
+                <input name="studentName" placeholder="Student name" className="w-full rounded-xl border-slate-200 text-[13px]" required />
+                <GradeSelect schools={schools} />
                 <input name="allergyNotes" placeholder="Allergy notes" className="w-full rounded-xl border-slate-200 text-[13px]" />
                 <input name="dietaryNotes" placeholder="Dietary notes" className="w-full rounded-xl border-slate-200 text-[13px]" />
                 <SubmitButton label="Save child" pendingLabel="Saving..." />

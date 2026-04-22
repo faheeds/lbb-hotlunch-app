@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { formatInTimeZone } from "date-fns-tz";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
+import { getGradesForSchoolName } from "@/lib/grades";
 import { cn } from "@/lib/utils";
 
 type DeliveryDate = {
@@ -84,6 +85,9 @@ export function OrderForm({
       if (!acc.find((s) => s.id === d.school.id)) acc.push(d.school);
       return acc;
     }, []), [deliveryDates]);
+
+  const selectedSchoolName = schools.find((s) => s.id === selectedSchoolId)?.name ?? "";
+  const gradeOptions = getGradesForSchoolName(selectedSchoolName);
 
   const schoolDeliveryDates = useMemo(() => deliveryDates.filter((d) => d.school.id === selectedSchoolId), [deliveryDates, selectedSchoolId]);
   const selectedDelivery = deliveryDates.find((d) => d.id === selectedDeliveryDateId);
@@ -287,7 +291,12 @@ export function OrderForm({
               </div>
               <div>
                 <label className="text-[11px] text-slate-500 mb-1 block">Grade</label>
-                <input className="w-full rounded-xl border-slate-200 text-[13px] px-3 py-2" value={grade} onChange={(e) => setGrade(e.target.value)} placeholder="Grade" required />
+                <select className="w-full rounded-xl border-slate-200 text-[13px] px-3 py-2" value={grade} onChange={(e) => setGrade(e.target.value)} required>
+                  <option value="" disabled>Select grade</option>
+                  {gradeOptions.map((g) => (
+                    <option key={g} value={g}>{g}</option>
+                  ))}
+                </select>
               </div>
             </div>
             <div>
