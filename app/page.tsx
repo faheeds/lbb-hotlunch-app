@@ -44,7 +44,7 @@ export default function HomePage() {
             background: "linear-gradient(170deg, rgba(28,5,5,0.30) 0%, rgba(28,5,5,0.92) 75%)"
           }} />
 
-          <div className="absolute inset-0 flex flex-col justify-end" style={{ padding: "0 20px 24px" }}>
+          <div className="absolute inset-0 flex flex-col justify-end" style={{ padding: "0 20px 0" }}>
             <p style={{
               fontSize: 9, fontWeight: 700, letterSpacing: "0.28em",
               textTransform: "uppercase", color: "#f59e0b",
@@ -64,8 +64,7 @@ export default function HomePage() {
             <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.72)", marginBottom: 20, lineHeight: 1.5 }}>
               Fresh burgers, chicken &amp; more — order for tomorrow or plan the whole week.
             </p>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", gap: 10, marginBottom: 14 }}>
               <Link href="/order" style={{
                 padding: "12px 22px", borderRadius: 100,
                 fontSize: 13, fontWeight: 700, textDecoration: "none",
@@ -86,11 +85,13 @@ export default function HomePage() {
               }}>
                 Plan The Week
               </Link>
-              </div>
-              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.70)", letterSpacing: "0.04em" }}>
-                ☪ HFSAA Certified · Hand Slaughtered Halal
-              </p>
             </div>
+            <p style={{
+              fontSize: 10.5, color: "rgba(255,255,255,0.60)", letterSpacing: "0.06em",
+              textTransform: "uppercase", paddingBottom: 14
+            }}>
+              HFSAA Certified · Hand Slaughtered Halal
+            </p>
           </div>
         </div>
 
