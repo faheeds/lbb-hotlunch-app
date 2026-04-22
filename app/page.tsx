@@ -17,11 +17,11 @@ const steps = [
 ];
 
 const foodStrip = [
-  { src: "/food/shake.jpg",            alt: "Signature milkshake"    },
-  { src: "/food/burger-cheesy.jpg",    alt: "Smash burger"           },
-  { src: "/food/chicken-tenders.jpg",  alt: "Chicken tenders"        },
-  { src: "/food/burger-diner.jpg",     alt: "Double patty burger"    },
-  { src: "/food/chicken-sandwich.jpg", alt: "Crispy chicken sandwich"},
+  { src: "/food/shake.png",              alt: "Signature milkshake"    },
+  { src: "/food/burger-cheesy.webp",     alt: "Smash burger"           },
+  { src: "/food/chicken-tenders.jpeg",   alt: "Chicken tenders"        },
+  { src: "/food/burger-diner.jpeg",      alt: "Double patty burger"    },
+  { src: "/food/chicken-sandwich.jpeg",  alt: "Crispy chicken sandwich"},
 ];
 
 export default function HomePage() {
@@ -33,7 +33,7 @@ export default function HomePage() {
         {/* ── Hero ────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden" style={{ height: 290 }}>
           <Image
-            src="/food/hero.jpg"
+            src="/food/hero.jpeg"
             alt="Local Bigger Burger spread"
             fill
             style={{ objectFit: "cover", objectPosition: "center top" }}
