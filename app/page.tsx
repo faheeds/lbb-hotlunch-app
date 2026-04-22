@@ -64,7 +64,8 @@ export default function HomePage() {
             <p style={{ fontSize: 12.5, color: "rgba(255,255,255,0.72)", marginBottom: 20, lineHeight: 1.5 }}>
               Fresh burgers, chicken &amp; more — order for tomorrow or plan the whole week.
             </p>
-            <div style={{ display: "flex", gap: 10 }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+              <div style={{ display: "flex", gap: 10 }}>
               <Link href="/order" style={{
                 padding: "12px 22px", borderRadius: 100,
                 fontSize: 13, fontWeight: 700, textDecoration: "none",
@@ -85,6 +86,10 @@ export default function HomePage() {
               }}>
                 Plan The Week
               </Link>
+              </div>
+              <p style={{ fontSize: 11, color: "rgba(255,255,255,0.70)", letterSpacing: "0.04em" }}>
+                ☪ HFSAA Certified · Hand Slaughtered Halal
+              </p>
             </div>
           </div>
         </div>
@@ -112,22 +117,6 @@ export default function HomePage() {
                 <Image src={item.src} alt={item.alt} fill style={{ objectFit: "cover" }} />
               </div>
             ))}
-          </div>
-        </div>
-
-        {/* ── Halal badge strip ───────────────────────────────────── */}
-        <div style={{ padding: "16px 20px 0" }}>
-          <div style={{
-            background: "#f0fdf4", border: "1px solid #bbf7d0",
-            borderRadius: 14, padding: "10px 16px",
-            display: "flex", alignItems: "center", justifyContent: "center",
-            gap: 10, flexWrap: "wrap"
-          }}>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>☪ Hand Slaughtered Halal</span>
-            <span style={{ color: "#86efac", fontSize: 11 }}>•</span>
-            <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>HFSAA Certified</span>
-            <span style={{ color: "#86efac", fontSize: 11 }}>•</span>
-            <span style={{ fontSize: 11, color: "#166534" }}>⚠ Contains Dairy</span>
           </div>
         </div>
 
