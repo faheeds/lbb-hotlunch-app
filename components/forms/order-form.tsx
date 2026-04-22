@@ -60,8 +60,8 @@ export function OrderForm({
   deliveryDates, menuItemsByDeliveryDate, savedChildren = [],
   initialParentProfile, initialSchoolId, initialDeliveryDateId, initialCartItems = []
 }: OrderFormProps) {
-  const defaultSchoolId = initialSchoolId || deliveryDates[0]?.school.id || "";
-  const defaultDeliveryDateId = initialDeliveryDateId || deliveryDates.find((d) => d.school.id === defaultSchoolId)?.id || deliveryDates[0]?.id || "";
+  const defaultSchoolId = initialSchoolId || "";
+  const defaultDeliveryDateId = initialDeliveryDateId || "";
 
   const [step, setStep] = useState<Step>(1);
   const [selectedSchoolId, setSelectedSchoolId] = useState(defaultSchoolId);
@@ -231,6 +231,9 @@ export function OrderForm({
           </div>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 mb-2">Delivery date</p>
+            {!selectedSchoolId && (
+              <p className="text-[12px] text-slate-400 bg-slate-50 rounded-xl px-3 py-2.5">Choose a campus above to see available dates.</p>
+            )}
             <div className="flex gap-2 overflow-x-auto pb-1">
               {schoolDeliveryDates.map((date) => {
                 const sel = selectedDeliveryDateId === date.id;
@@ -263,7 +266,7 @@ export function OrderForm({
               </div>
             )}
           </div>
-          <button type="button" onClick={() => { if (!selectedDeliveryDateId) { setError("Choose a delivery date."); return; } setError(""); window.history.pushState({ orderStep: 2 }, ""); setStep(2); }}
+          <button type="button" onClick={() => { if (!selectedSchoolId) { setError("Choose a campus."); return; } if (!selectedDeliveryDateId) { setError("Choose a delivery date."); return; } setError(""); window.history.pushState({ orderStep: 2 }, ""); setStep(2); }}
             className="w-full py-3 rounded-xl bg-ink text-white text-[13px] font-semibold">
             Continue →
           </button>
