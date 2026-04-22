@@ -17,7 +17,7 @@ const steps = [
 ];
 
 const foodStrip = [
-  { src: "/food/shake.png",              alt: "Signature milkshake"    },
+  { src: "/food/salad.jpg",              alt: "Fresh salad"            },
   { src: "/food/burger-cheesy.webp",     alt: "Smash burger"           },
   { src: "/food/chicken-tenders.jpeg",   alt: "Chicken tenders"        },
   { src: "/food/burger-diner.jpeg",      alt: "Double patty burger"    },
