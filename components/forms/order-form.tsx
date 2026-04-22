@@ -90,6 +90,20 @@ export function OrderForm({
     }
   }, [selectedMenuItemId]);
 
+  // Sync form steps with browser history so the phone back button
+  // navigates between steps instead of leaving the page entirely.
+  useEffect(() => {
+    window.history.replaceState({ orderStep: 1 }, "");
+    function handlePopState(e: PopStateEvent) {
+      const target = e.state?.orderStep as Step | undefined;
+      if (target && target >= 1 && target <= 4) {
+        setStep(target);
+      }
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
+
   const schools = useMemo(() =>
     deliveryDates.reduce<DeliveryDate["school"][]>((acc, d) => {
       if (!acc.find((s) => s.id === d.school.id)) acc.push(d.school);
@@ -249,7 +263,7 @@ export function OrderForm({
               </div>
             )}
           </div>
-          <button type="button" onClick={() => { if (!selectedDeliveryDateId) { setError("Choose a delivery date."); return; } setError(""); setStep(2); }}
+          <button type="button" onClick={() => { if (!selectedDeliveryDateId) { setError("Choose a delivery date."); return; } setError(""); window.history.pushState({ orderStep: 2 }, ""); setStep(2); }}
             className="w-full py-3 rounded-xl bg-ink text-white text-[13px] font-semibold">
             Continue →
           </button>
@@ -260,7 +274,7 @@ export function OrderForm({
       {/* STEP 2: Student */}
       {step === 2 && (
         <div className="space-y-4">
-          <button type="button" onClick={() => setStep(1)} className="text-[12px] text-slate-500 flex items-center gap-1 mb-2">← Back</button>
+          <button type="button" onClick={() => window.history.back()} className="text-[12px] text-slate-500 flex items-center gap-1 mb-2">← Back</button>
           <div>
             <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-400 mb-2">Ordering for</p>
             {savedChildren.length > 0 && (
@@ -314,7 +328,7 @@ export function OrderForm({
               <textarea className="w-full rounded-xl border-slate-200 text-[13px] px-3 py-2 resize-none" rows={2} value={allergyNotes} onChange={(e) => setAllergyNotes(e.target.value)} placeholder="e.g. nut allergy, no dairy..." />
             </div>
           </div>
-          <button type="button" onClick={() => { if (!studentName || !grade || !parentName || !parentEmail) { setError("Fill in all required fields."); return; } setError(""); setStep(3); }}
+          <button type="button" onClick={() => { if (!studentName || !grade || !parentName || !parentEmail) { setError("Fill in all required fields."); return; } setError(""); window.history.pushState({ orderStep: 3 }, ""); setStep(3); }}
             className="w-full py-3 rounded-xl bg-ink text-white text-[13px] font-semibold">
             Choose meals →
           </button>
@@ -325,7 +339,7 @@ export function OrderForm({
       {/* STEP 3: Menu */}
       {step === 3 && (
         <div ref={menuScrollRef}>
-          <button type="button" onClick={() => setStep(2)} className="text-[12px] text-slate-500 flex items-center gap-1 mb-3">← Back</button>
+          <button type="button" onClick={() => window.history.back()} className="text-[12px] text-slate-500 flex items-center gap-1 mb-3">← Back</button>
           <div className="rounded-[14px] bg-brand-50 border border-brand-100 px-3 py-2.5 mb-4 text-[12px] text-brand-900 flex justify-between items-center">
             <span>{studentName} &middot; {formatInTimeZone(selectedDelivery!.deliveryDate, selectedDelivery!.school.timezone, "EEE MMM d")}</span>
             <span className="font-semibold">{selectedDelivery?.school.name}</span>
@@ -475,7 +489,7 @@ export function OrderForm({
             </div>
           )}
 
-          <button type="button" onClick={() => { if (!cartItems.length) { setError("Add at least one item first."); return; } setError(""); setStep(4); }}
+          <button type="button" onClick={() => { if (!cartItems.length) { setError("Add at least one item first."); return; } setError(""); window.history.pushState({ orderStep: 4 }, ""); setStep(4); }}
             disabled={!cartItems.length}
             className="w-full py-3 rounded-xl bg-ink text-white text-[13px] font-semibold disabled:opacity-30">
             Review & pay →
@@ -487,7 +501,7 @@ export function OrderForm({
       {/* STEP 4: Review */}
       {step === 4 && (
         <div className="space-y-4">
-          <button type="button" onClick={() => setStep(3)} className="text-[12px] text-slate-500 flex items-center gap-1 mb-2">← Back</button>
+          <button type="button" onClick={() => window.history.back()} className="text-[12px] text-slate-500 flex items-center gap-1 mb-2">← Back</button>
 
           <div className="rounded-[18px] border border-slate-100 bg-white divide-y divide-slate-50 overflow-hidden">
             <div className="p-4">
