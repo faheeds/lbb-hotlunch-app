@@ -79,6 +79,16 @@ export function OrderForm({
   const [grade, setGrade] = useState(initialParentProfile?.grade ?? "");
   const [allergyNotes, setAllergyNotes] = useState(initialParentProfile?.allergyNotes ?? "");
   const menuScrollRef = useRef<HTMLDivElement>(null);
+  const customizePanelRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to the customize panel as soon as an item is selected
+  useEffect(() => {
+    if (selectedMenuItemId) {
+      setTimeout(() => {
+        customizePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+  }, [selectedMenuItemId]);
 
   const schools = useMemo(() =>
     deliveryDates.reduce<DeliveryDate["school"][]>((acc, d) => {
@@ -367,7 +377,7 @@ export function OrderForm({
 
           {/* Customize panel */}
           {selectedMenuItem && (
-            <div className="rounded-[18px] border-2 border-brand-200 bg-brand-50 p-4 mb-4 space-y-3">
+            <div ref={customizePanelRef} className="rounded-[18px] border-2 border-brand-200 bg-brand-50 p-4 mb-4 space-y-3">
               <p className="text-[13px] font-semibold text-brand-900">Customize: {selectedMenuItem.name}</p>
 
               {requiredChoices.length > 0 && (

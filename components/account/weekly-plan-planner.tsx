@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { formatInTimeZone } from "date-fns-tz";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
@@ -119,6 +119,16 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
   const [selectedRemovals, setSelectedRemovals] = useState<string[]>([]);
   const [error, setError] = useState("");
   const [showAdder, setShowAdder] = useState(false);
+  const customizePanelRef = useRef<HTMLDivElement>(null);
+
+  // Scroll to the customize panel whenever a menu item is selected
+  useEffect(() => {
+    if (selectedMenuItemId) {
+      setTimeout(() => {
+        customizePanelRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+      }, 50);
+    }
+  }, [selectedMenuItemId]);
 
   const selectedChild = children.find((c) => c.id === selectedChildId);
 
@@ -505,7 +515,7 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
 
                       {/* Customize */}
                       {selectedMenuItem && (
-                        <div className="rounded-[18px] border-2 border-brand-200 bg-brand-50 p-4 space-y-3">
+                        <div ref={customizePanelRef} className="rounded-[18px] border-2 border-brand-200 bg-brand-50 p-4 space-y-3">
                           <p className="text-[13px] font-semibold text-brand-900">
                             Customize: {selectedMenuItem.name}
                           </p>
