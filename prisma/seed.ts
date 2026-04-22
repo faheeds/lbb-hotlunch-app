@@ -193,11 +193,11 @@ async function main() {
         { name: "Extra patty", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 399, sortOrder: 5 },
         { name: "Fried egg", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 199, sortOrder: 6 },
         { name: "Jalapenos", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 49, sortOrder: 7 },
-        { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
-        { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
-        { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
-        { name: "Sauce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 4 },
-        { name: "Onions", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 5 }
+        { name: "Lettuce",    optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
+        { name: "Pickles",    optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
+        { name: "Tomatoes",   optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
+        { name: "Red Onions", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 4 },
+        { name: "Sauce",      optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 5 }
       ]
     },
     {
@@ -215,10 +215,11 @@ async function main() {
         { name: "Extra bacon", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 200, sortOrder: 2 },
         { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
         { name: "Extra patty", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 399, sortOrder: 4 },
-        { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
-        { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
-        { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
-        { name: "Onions", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 4 }
+        { name: "Lettuce",    optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
+        { name: "Pickles",    optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
+        { name: "Tomatoes",   optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
+        { name: "Red Onions", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 4 },
+        { name: "Sauce",      optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 5 }
       ]
     },
     {
@@ -247,9 +248,11 @@ async function main() {
         { name: "Cheese", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Avocado", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 150, sortOrder: 2 },
         { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
-        { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
-        { name: "Pickles", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
-        { name: "Garlic aioli", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 }
+        { name: "Lettuce",    optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
+        { name: "Pickles",    optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
+        { name: "Tomatoes",   optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
+        { name: "Red Onions", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 4 },
+        { name: "Sauce",      optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 5 }
       ]
     },
     {
@@ -261,9 +264,11 @@ async function main() {
         { name: "Cheese", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 100, sortOrder: 1 },
         { name: "Avocado", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 150, sortOrder: 2 },
         { name: "Gluten Free Bun", optionType: MenuOptionType.ADD_ON, priceDeltaCents: 149, sortOrder: 3 },
-        { name: "Lettuce", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
-        { name: "Tomato", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
-        { name: "Onion", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 }
+        { name: "Lettuce",    optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 1 },
+        { name: "Pickles",    optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 2 },
+        { name: "Tomatoes",   optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 3 },
+        { name: "Red Onions", optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 4 },
+        { name: "Sauce",      optionType: MenuOptionType.REMOVAL, priceDeltaCents: 0, sortOrder: 5 }
       ]
     },
     {

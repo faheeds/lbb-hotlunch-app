@@ -39,7 +39,6 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
       additions: formData.getAll("additions").map(String),
       removals: formData.getAll("removals").map(String),
       allergyNotes: String(formData.get("allergyNotes") || ""),
-      dietaryNotes: String(formData.get("dietaryNotes") || ""),
       specialInstructions: String(formData.get("specialInstructions") || "")
     });
     revalidatePath(`/admin/orders/${orderId}`);
@@ -152,11 +151,6 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
             <div>
               <label className="text-[11px] text-slate-500 mb-1 block">Allergy notes</label>
               <textarea name="allergyNotes" rows={2} defaultValue={item?.allergyNotes ?? ""}
-                className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2 resize-none" />
-            </div>
-            <div>
-              <label className="text-[11px] text-slate-500 mb-1 block">Dietary notes</label>
-              <textarea name="dietaryNotes" rows={2} defaultValue={item?.dietaryNotes ?? ""}
                 className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2 resize-none" />
             </div>
             <div>

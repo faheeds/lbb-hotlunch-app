@@ -115,6 +115,22 @@ export default function HomePage() {
           </div>
         </div>
 
+        {/* ── Halal badge strip ───────────────────────────────────── */}
+        <div style={{ padding: "16px 20px 0" }}>
+          <div style={{
+            background: "#f0fdf4", border: "1px solid #bbf7d0",
+            borderRadius: 14, padding: "10px 16px",
+            display: "flex", alignItems: "center", justifyContent: "center",
+            gap: 10, flexWrap: "wrap"
+          }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>☪ Hand Slaughtered Halal</span>
+            <span style={{ color: "#86efac", fontSize: 11 }}>•</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: "#15803d" }}>HFSAA Certified</span>
+            <span style={{ color: "#86efac", fontSize: 11 }}>•</span>
+            <span style={{ fontSize: 11, color: "#166534" }}>⚠ Contains Dairy</span>
+          </div>
+        </div>
+
         {/* ── Feature cards ───────────────────────────────────────── */}
         <div style={{ padding: "20px 20px 0" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>

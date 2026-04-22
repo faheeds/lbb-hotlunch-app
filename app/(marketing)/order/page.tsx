@@ -112,8 +112,7 @@ export default async function OrderPage({
                   schoolId: child.schoolId,
                   studentName: child.studentName,
                   grade: child.grade,
-                  allergyNotes: child.allergyNotes ?? "",
-                  dietaryNotes: child.dietaryNotes ?? ""
+                  allergyNotes: child.allergyNotes ?? ""
                 })) ?? []
               }
               initialParentProfile={{

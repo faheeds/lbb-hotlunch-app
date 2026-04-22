@@ -47,7 +47,7 @@ const styles = StyleSheet.create({
 });
 
 function LabelCard({ order }: { order: LabelOrder }) {
-  const allergy = order.items.map((item) => item.allergyNotes).find(Boolean) || order.student.dietaryNotes;
+  const allergy = order.items.map((item) => item.allergyNotes).find(Boolean) || order.student.allergyNotes;
   const itemLines = order.items.map((item) => ({
     name: item.itemNameSnapshot,
     additions: item.additions.length ? item.additions.join(", ") : "None",
@@ -114,7 +114,7 @@ export function mapOrderToLabelRows(orders: LabelOrder[]) {
       itemName: order.items.map((item) => item.itemNameSnapshot).join(" | "),
       additions: order.items.flatMap((item) => item.additions),
       removals: order.items.flatMap((item) => item.removals),
-      alert: order.items.map((item) => item.allergyNotes).find(Boolean) ?? order.student.dietaryNotes ?? ""
+      alert: order.items.map((item) => item.allergyNotes).find(Boolean) ?? order.student.allergyNotes ?? ""
     };
   });
 }

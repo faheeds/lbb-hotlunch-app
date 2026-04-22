@@ -32,7 +32,6 @@ export default async function ParentAccountPage() {
         studentName: String(formData.get("studentName")),
         grade: String(formData.get("grade")),
         allergyNotes: String(formData.get("allergyNotes") || "") || null,
-        dietaryNotes: String(formData.get("dietaryNotes") || "") || null,
       }
     });
     revalidatePath("/account");
@@ -52,7 +51,6 @@ export default async function ParentAccountPage() {
         studentName: String(formData.get("studentName")),
         grade: String(formData.get("grade")),
         allergyNotes: String(formData.get("allergyNotes") || "") || null,
-        dietaryNotes: String(formData.get("dietaryNotes") || "") || null,
       }
     });
     revalidatePath("/account");
@@ -189,7 +187,6 @@ export default async function ParentAccountPage() {
                       defaultGrade={child.grade}
                     />
                     <input name="allergyNotes" defaultValue={child.allergyNotes ?? ""} placeholder="Allergy notes" className="w-full rounded-xl border-slate-200 text-[13px]" />
-                    <input name="dietaryNotes" defaultValue={child.dietaryNotes ?? ""} placeholder="Dietary notes" className="w-full rounded-xl border-slate-200 text-[13px]" />
                     <div className="flex gap-2 pt-1">
                       <SubmitButton label="Save changes" pendingLabel="Saving..." />
                       <form action={archiveChild}>
@@ -211,7 +208,6 @@ export default async function ParentAccountPage() {
                 <input name="studentName" placeholder="Student name" className="w-full rounded-xl border-slate-200 text-[13px]" required />
                 <GradeSelect schools={schools} />
                 <input name="allergyNotes" placeholder="Allergy notes" className="w-full rounded-xl border-slate-200 text-[13px]" />
-                <input name="dietaryNotes" placeholder="Dietary notes" className="w-full rounded-xl border-slate-200 text-[13px]" />
                 <SubmitButton label="Save child" pendingLabel="Saving..." />
               </form>
             </details>
