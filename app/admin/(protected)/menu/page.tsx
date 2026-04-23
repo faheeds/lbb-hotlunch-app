@@ -50,6 +50,14 @@ async function updateItemPrice(formData: FormData) {
   revalidatePath("/admin/menu");
 }
 
+async function updateItemDescription(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id"));
+  const description = String(formData.get("description") || "").trim() || null;
+  await prisma.menuItem.update({ where: { id }, data: { description } });
+  revalidatePath("/admin/menu");
+}
+
 const CATEGORIES = [
   "Signature Burgers & Sandwiches",
   "Salads with Protein",
@@ -244,6 +252,23 @@ export default async function AdminMenuPage() {
                         </div>
                         <button type="submit"
                           className="px-3 py-1.5 rounded-lg bg-brand-700 text-white text-[11px] font-semibold flex-shrink-0 hover:bg-brand-800 transition">
+                          Save
+                        </button>
+                      </form>
+
+                      {/* Quick description edit */}
+                      <form action={updateItemDescription} className="flex items-start gap-2">
+                        <input type="hidden" name="id" value={item.id} />
+                        <label className="text-[11px] text-slate-500 flex-shrink-0 mt-2">Description</label>
+                        <textarea
+                          name="description"
+                          rows={2}
+                          defaultValue={item.description ?? ""}
+                          placeholder="Signature Burgers & Sandwiches. Description here…"
+                          className="flex-1 rounded-lg border border-slate-200 text-[12px] px-3 py-1.5 resize-none"
+                        />
+                        <button type="submit"
+                          className="px-3 py-1.5 rounded-lg bg-brand-700 text-white text-[11px] font-semibold flex-shrink-0 hover:bg-brand-800 transition mt-0.5">
                           Save
                         </button>
                       </form>
