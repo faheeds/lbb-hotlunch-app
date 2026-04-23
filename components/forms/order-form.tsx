@@ -93,19 +93,6 @@ export function OrderForm({
     }
   }, [selectedMenuItemId]);
 
-  // When arriving at step 3 from a "Order this item →" deep-link, auto-select
-  // the requested item so it's already highlighted and ready to customize.
-  useEffect(() => {
-    if (step !== 3 || !initialItemSlug || itemSlugAutoSelected.current) return;
-    const match = menuItems.find((item) => item.slug === initialItemSlug);
-    if (!match) return;
-    itemSlugAutoSelected.current = true;
-    setSelectedMenuItemId(match.id);
-    setSelectedChoice("");
-    setSelectedAdditions([]);
-    setSelectedRemovals([]);
-  }, [step, initialItemSlug, menuItems]);
-
   // Sync form steps with browser history so the phone back button
   // navigates between steps instead of leaving the page entirely.
   useEffect(() => {
@@ -147,6 +134,20 @@ export function OrderForm({
       return ordered;
     }, {});
   }, [menuItems]);
+
+  // When arriving at step 3 from an "Order this item →" deep-link, auto-select
+  // the requested item so it's already highlighted and ready to customize.
+  // Must be placed after menuItems is declared.
+  useEffect(() => {
+    if (step !== 3 || !initialItemSlug || itemSlugAutoSelected.current) return;
+    const match = menuItems.find((item) => item.slug === initialItemSlug);
+    if (!match) return;
+    itemSlugAutoSelected.current = true;
+    setSelectedMenuItemId(match.id);
+    setSelectedChoice("");
+    setSelectedAdditions([]);
+    setSelectedRemovals([]);
+  }, [step, initialItemSlug, menuItems]);
 
   const selectedItemTotalCents = useMemo(() => {
     if (!selectedMenuItem) return 0;
