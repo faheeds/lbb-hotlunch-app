@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
 import { ParentSignInButtons } from "./sign-in-buttons";
+import { NativeAppRedirect } from "./native-app-redirect";
 import { SiteHeader } from "@/components/site-header";
 import { AppNav } from "@/components/app-nav";
 
@@ -9,6 +10,7 @@ export default function ParentSignInPage() {
 
   return (
     <>
+      <NativeAppRedirect />
       <SiteHeader />
       <main className="app-content flex items-center justify-center p-4">
         <div className="w-full max-w-sm space-y-6">
