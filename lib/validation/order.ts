@@ -76,10 +76,10 @@ export const deliveryDateSchema = z.object({
         if (!match) return false;
         const [, y, m, d] = match;
         const local = new Date(Number(y), Number(m) - 1, Number(d));
-        const dow = local.getDay(); // 0=Sun, 6=Sat
-        return dow !== 0 && dow !== 6;
+        const dow = local.getDay(); // 0=Sun, 5=Fri, 6=Sat
+        return dow >= 1 && dow <= 4; // Monday–Thursday only
       },
-      { message: "Delivery date must be Monday–Friday (no weekend deliveries)." }
+      { message: "Delivery date must be Monday–Thursday (no Friday or weekend deliveries)." }
     ),
   cutoffAt: z.string().min(1),
   orderingOpen: z.coerce.boolean().default(true),

@@ -18,12 +18,12 @@ export function getUpcomingSchoolWeekRange(now: Date, timezone: string) {
   const nextMonday = new Date(now);
   nextMonday.setDate(nextMonday.getDate() + daysUntilNextMonday);
 
-  const nextFriday = new Date(nextMonday);
-  nextFriday.setDate(nextFriday.getDate() + 4);
+  const nextThursday = new Date(nextMonday);
+  nextThursday.setDate(nextThursday.getDate() + 3); // Mon–Thu only (school schedule)
 
   return {
     start: buildLocalDayStart(nextMonday, timezone),
-    end: buildLocalDayEnd(nextFriday, timezone)
+    end: buildLocalDayEnd(nextThursday, timezone)
   };
 }
 
@@ -33,12 +33,15 @@ export function getSchoolWeekRangeForDate(date: Date, timezone: string) {
   const monday = new Date(date);
   monday.setDate(monday.getDate() - daysSinceMonday);
 
-  const friday = new Date(monday);
-  friday.setDate(friday.getDate() + 4);
+  // End on Thursday — school only provides lunch Mon–Thu.
+  // Friday is kept as end for legacy data grouping so historical Friday
+  // orders (if any) are still associated with the correct week.
+  const thursday = new Date(monday);
+  thursday.setDate(thursday.getDate() + 3);
 
   return {
     start: buildLocalDayStart(monday, timezone),
-    end: buildLocalDayEnd(friday, timezone)
+    end: buildLocalDayEnd(thursday, timezone)
   };
 }
 
@@ -50,11 +53,11 @@ export function getUpcomingOrderingWindowRange(now: Date, timezone: string) {
   const nextMonday = new Date(now);
   nextMonday.setDate(nextMonday.getDate() + daysUntilNextMonday);
 
-  const nextFriday = new Date(nextMonday);
-  nextFriday.setDate(nextFriday.getDate() + 4);
+  const nextThursday = new Date(nextMonday);
+  nextThursday.setDate(nextThursday.getDate() + 3); // Mon–Thu only
 
   return {
     start: buildLocalDayStart(now, timezone),
-    end: buildLocalDayEnd(nextFriday, timezone)
+    end: buildLocalDayEnd(nextThursday, timezone)
   };
 }
