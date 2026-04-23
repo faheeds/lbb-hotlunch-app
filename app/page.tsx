@@ -19,29 +19,30 @@ const steps = [
   { n: "3", title: "Pay & confirm",       body: "Secure Stripe checkout. Confirmation email sent right away." },
 ];
 
-// Static fallbacks shown when fewer than 5 DB items have photos
-const staticFallbacks = [
-  { src: "/food/Salad.jpg",              alt: "Fresh salad"            },
-  { src: "/food/burger-cheesy.webp",     alt: "Smash burger"           },
-  { src: "/food/chicken-tenders.jpeg",   alt: "Chicken tenders"        },
-  { src: "/food/burger-diner.jpeg",      alt: "Double patty burger"    },
-  { src: "/food/chicken-sandwich.jpeg",  alt: "Crispy chicken sandwich"},
-];
 
 export default async function HomePage() {
-  // Fetch up to 5 active menu items that have a photo set in the admin
+  // Fetch all active menu items that have a photo
   const itemsWithPhotos = await prisma.menuItem.findMany({
     where: { isActive: true, imageUrl: { not: null } },
     select: { name: true, imageUrl: true },
-    take: 5,
-    orderBy: { updatedAt: "desc" },
+    orderBy: { name: "asc" },
   });
 
-  // Build the strip: DB photos first, pad with static fallbacks if needed
-  const stripItems = [
-    ...itemsWithPhotos.map((i) => ({ src: i.imageUrl!, alt: i.name })),
-    ...staticFallbacks.slice(itemsWithPhotos.length),
-  ].slice(0, 5);
+  // Pin the first 4 slots to specific categories, then append the rest
+  const pick = (keywords: string[]) =>
+    itemsWithPhotos.find((i) => keywords.some((k) => i.name.toLowerCase().includes(k)));
+
+  const pinned = [
+    pick(["burger", "smash", "double"]),          // slot 1: a burger
+    pick(["salad"]),                               // slot 2: a salad
+    pick(["chicken", "crispy", "sandwich"]),       // slot 3: chicken / sandwich
+    pick(["mac", "macaroni", "cheese"]),           // slot 4: mac n cheese
+  ].filter(Boolean) as typeof itemsWithPhotos;
+
+  const pinnedNames = new Set(pinned.map((i) => i.name));
+  const rest = itemsWithPhotos.filter((i) => !pinnedNames.has(i.name));
+
+  const stripItems = [...pinned, ...rest].map((i) => ({ src: i.imageUrl!, alt: i.name }));
   return (
     <>
       <SiteHeader />
@@ -113,7 +114,7 @@ export default async function HomePage() {
         </div>
 
         {/* ── Food strip ──────────────────────────────────────────── */}
-        <div style={{ padding: "20px 20px 4px" }}>
+        {stripItems.length > 0 && <div style={{ padding: "20px 20px 4px" }}>
           <p style={{
             fontSize: 10, fontWeight: 700, letterSpacing: "0.22em",
             textTransform: "uppercase", color: "#c41230", marginBottom: 13,
@@ -133,17 +134,12 @@ export default async function HomePage() {
                 boxShadow: "0 3px 10px rgba(28,5,5,0.18)",
                 display: "block", textDecoration: "none",
               }}>
-                {item.src.startsWith("/") ? (
-                  <Image src={item.src} alt={item.alt} fill style={{ objectFit: "cover" }} />
-                ) : (
-                  // External URL (from admin portal) — use plain img tag
-                  <img src={item.src} alt={item.alt}
-                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
-                )}
+                <img src={item.src} alt={item.alt}
+                  style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
               </Link>
             ))}
           </div>
-        </div>
+        </div>}
 
         {/* ── Feature cards ───────────────────────────────────────── */}
         <div style={{ padding: "20px 20px 0" }}>
