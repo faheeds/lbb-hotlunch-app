@@ -22,6 +22,7 @@ type OrderFormProps = {
   initialSchoolId?: string;
   initialDeliveryDateId?: string;
   initialCartItems?: CartItem[];
+  initialItemSlug?: string;
 };
 
 function fmt(cents: number) {
@@ -58,7 +59,8 @@ type Step = 1 | 2 | 3 | 4;
 
 export function OrderForm({
   deliveryDates, menuItemsByDeliveryDate, savedChildren = [],
-  initialParentProfile, initialSchoolId, initialDeliveryDateId, initialCartItems = []
+  initialParentProfile, initialSchoolId, initialDeliveryDateId, initialCartItems = [],
+  initialItemSlug
 }: OrderFormProps) {
   const defaultSchoolId = initialSchoolId || "";
   const defaultDeliveryDateId = initialDeliveryDateId || "";
@@ -80,6 +82,7 @@ export function OrderForm({
   const [allergyNotes, setAllergyNotes] = useState(initialParentProfile?.allergyNotes ?? "");
   const menuScrollRef = useRef<HTMLDivElement>(null);
   const customizePanelRef = useRef<HTMLDivElement>(null);
+  const itemSlugAutoSelected = useRef(false);
 
   // Scroll to the customize panel as soon as an item is selected
   useEffect(() => {
@@ -89,6 +92,19 @@ export function OrderForm({
       }, 50);
     }
   }, [selectedMenuItemId]);
+
+  // When arriving at step 3 from a "Order this item →" deep-link, auto-select
+  // the requested item so it's already highlighted and ready to customize.
+  useEffect(() => {
+    if (step !== 3 || !initialItemSlug || itemSlugAutoSelected.current) return;
+    const match = menuItems.find((item) => item.slug === initialItemSlug);
+    if (!match) return;
+    itemSlugAutoSelected.current = true;
+    setSelectedMenuItemId(match.id);
+    setSelectedChoice("");
+    setSelectedAdditions([]);
+    setSelectedRemovals([]);
+  }, [step, initialItemSlug, menuItems]);
 
   // Sync form steps with browser history so the phone back button
   // navigates between steps instead of leaving the page entirely.

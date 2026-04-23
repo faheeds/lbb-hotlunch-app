@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function OrderPage({
   searchParams
 }: {
-  searchParams: Promise<{ reorder?: string }>;
+  searchParams: Promise<{ reorder?: string; item?: string }>;
 }) {
   const session = await auth();
   const params = await searchParams;
@@ -137,6 +137,7 @@ export default async function OrderPage({
               initialSchoolId={reorderSchoolId ?? parent?.children[0]?.schoolId ?? ""}
               initialDeliveryDateId={initialDeliveryDateId ?? ""}
               initialCartItems={initialCartItems}
+              initialItemSlug={params.item}
             />
           ) : (
             <div className="rounded-[18px] border border-amber-200 bg-amber-50 p-5 text-[13px] text-amber-900">

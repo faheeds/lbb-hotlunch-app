@@ -140,7 +140,7 @@ export function MenuItemCard({ item, categoryIcon, categoryGradient }: Props) {
 
       {/* Order CTA */}
       <div style={{ padding: "0 16px 16px" }}>
-        <Link href="/order" style={{
+        <Link href={`/order?item=${item.slug}`} style={{
           display: "block", textAlign: "center",
           background: "#c41230", color: "white",
           borderRadius: 10, padding: "10px 16px",
