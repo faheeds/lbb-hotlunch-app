@@ -2,6 +2,7 @@ import { prisma } from "@/lib/db";
 import { auth } from "@/lib/auth";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
+import { getWeekdayNumber } from "@/lib/weekly-week";
 import { SiteHeader } from "@/components/site-header";
 import { AppNav } from "@/components/app-nav";
 import { OrderForm } from "@/components/forms/order-form";
@@ -16,7 +17,7 @@ export default async function OrderPage({
   const session = await auth();
   const params = await searchParams;
 
-  const deliveryDates = await prisma.deliveryDate.findMany({
+  const allDeliveryDates = await prisma.deliveryDate.findMany({
     where: {
       orderingOpen: true,
       cutoffAt: { gt: new Date() },
@@ -30,6 +31,14 @@ export default async function OrderPage({
       }
     },
     orderBy: [{ deliveryDate: "asc" }, { school: { name: "asc" } }]
+  });
+
+  // Filter to Mon–Thu only (school doesn't provide lunch on Fri/Sat/Sun).
+  // The deliveryDateSchema already blocks new Friday dates, but existing
+  // ones in the DB would otherwise show up here.
+  const deliveryDates = allDeliveryDates.filter((d) => {
+    const weekday = getWeekdayNumber(d.deliveryDate, d.school.timezone);
+    return weekday >= 1 && weekday <= 4;
   });
 
   const parent =
