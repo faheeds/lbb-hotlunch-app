@@ -14,6 +14,17 @@ const navItems = [
     )
   },
   {
+    href: "/menu", label: "Menu",
+    activeColor: "#f59e0b",
+    icon: (active: boolean) => (
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke={active ? "#f59e0b" : "rgba(255,255,255,0.35)"} strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 5h18M3 10h18M3 15h10"/>
+        <circle cx="17" cy="17" r="3"/>
+        <path d="M17 15v2l1 1"/>
+      </svg>
+    )
+  },
+  {
     href: "/order", label: "Order",
     activeColor: "#f59e0b",
     icon: (active: boolean) => (

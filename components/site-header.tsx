@@ -62,6 +62,7 @@ export function SiteHeader() {
         <nav style={{ width: "100%", borderTop: "1px solid rgba(255,255,255,0.08)", background: "#1c0505", padding: "8px 12px 14px" }}>
           {[
             { href: "/",        label: "Home"          },
+            { href: "/menu",    label: "Menu"          },
             { href: "/order",   label: "Order lunch"   },
             { href: "/weekly",  label: "Weekly plan"   },
             { href: "/history", label: "Order history" },
