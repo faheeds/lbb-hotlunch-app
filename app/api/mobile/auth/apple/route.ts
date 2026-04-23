@@ -14,6 +14,17 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "@/lib/db";
 import { signMobileToken } from "@/lib/mobile-jwt";
 
+// CORS headers for Capacitor iOS WebView (origin: capacitor://localhost)
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 const APPLE_JWKS_URI = "https://appleid.apple.com/auth/keys";
 const APPLE_ISSUER = "https://appleid.apple.com";
 // The web Services ID (used for web-based Apple Sign In)
@@ -32,7 +43,7 @@ export async function POST(request: NextRequest) {
     };
 
     if (!identityToken) {
-      return NextResponse.json({ error: "identityToken is required" }, { status: 400 });
+      return NextResponse.json({ error: "identityToken is required" }, { status: 400, headers: CORS_HEADERS });
     }
 
     // Verify the token against Apple's JWKS.
@@ -46,12 +57,12 @@ export async function POST(request: NextRequest) {
       payload = result.payload as Record<string, unknown>;
     } catch (err) {
       console.error("Apple token verification failed:", err);
-      return NextResponse.json({ error: "Invalid identity token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid identity token" }, { status: 401, headers: CORS_HEADERS });
     }
 
     const email = (payload.email as string | undefined)?.toLowerCase();
     if (!email) {
-      return NextResponse.json({ error: "No email in Apple token" }, { status: 400 });
+      return NextResponse.json({ error: "No email in Apple token" }, { status: 400, headers: CORS_HEADERS });
     }
 
     // Build display name from fullName (only provided on first sign-in by Apple)
@@ -79,9 +90,9 @@ export async function POST(request: NextRequest) {
       name: parent.name ?? undefined,
     });
 
-    return NextResponse.json({ token });
+    return NextResponse.json({ token }, { headers: CORS_HEADERS });
   } catch (err) {
     console.error("Mobile Apple auth error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: CORS_HEADERS });
   }
 }

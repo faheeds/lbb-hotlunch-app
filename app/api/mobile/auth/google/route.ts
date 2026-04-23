@@ -14,6 +14,17 @@ import { createRemoteJWKSet, jwtVerify } from "jose";
 import { prisma } from "@/lib/db";
 import { signMobileToken } from "@/lib/mobile-jwt";
 
+// CORS headers for Capacitor iOS WebView (origin: capacitor://localhost)
+const CORS_HEADERS = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type",
+};
+
+export async function OPTIONS() {
+  return new Response(null, { status: 204, headers: CORS_HEADERS });
+}
+
 const GOOGLE_JWKS_URI = "https://www.googleapis.com/oauth2/v3/certs";
 const GOOGLE_ISSUERS = ["accounts.google.com", "https://accounts.google.com"];
 const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID ?? "";
@@ -26,11 +37,11 @@ export async function POST(request: NextRequest) {
     const { idToken } = body as { idToken?: string };
 
     if (!idToken) {
-      return NextResponse.json({ error: "idToken is required" }, { status: 400 });
+      return NextResponse.json({ error: "idToken is required" }, { status: 400, headers: CORS_HEADERS });
     }
 
     if (!GOOGLE_CLIENT_ID) {
-      return NextResponse.json({ error: "Google auth not configured" }, { status: 503 });
+      return NextResponse.json({ error: "Google auth not configured" }, { status: 503, headers: CORS_HEADERS });
     }
 
     // Verify against Google's JWKS
@@ -46,12 +57,12 @@ export async function POST(request: NextRequest) {
       }
     } catch (err) {
       console.error("Google token verification failed:", err);
-      return NextResponse.json({ error: "Invalid ID token" }, { status: 401 });
+      return NextResponse.json({ error: "Invalid ID token" }, { status: 401, headers: CORS_HEADERS });
     }
 
     const email = (payload.email as string | undefined)?.toLowerCase();
     if (!email) {
-      return NextResponse.json({ error: "No email in Google token" }, { status: 400 });
+      return NextResponse.json({ error: "No email in Google token" }, { status: 400, headers: CORS_HEADERS });
     }
 
     const name = (payload.name as string | undefined) || undefined;
@@ -81,9 +92,9 @@ export async function POST(request: NextRequest) {
       name: parent.name ?? undefined,
     });
 
-    return NextResponse.json({ token });
+    return NextResponse.json({ token }, { headers: CORS_HEADERS });
   } catch (err) {
     console.error("Mobile Google auth error:", err);
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal server error" }, { status: 500, headers: CORS_HEADERS });
   }
 }
