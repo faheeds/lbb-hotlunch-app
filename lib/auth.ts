@@ -6,6 +6,7 @@ import bcrypt from "bcryptjs";
 import { prisma } from "@/lib/db";
 import { env } from "@/lib/env";
 import { adminLoginSchema } from "@/lib/validation/order";
+import { verifyMobileToken } from "@/lib/mobile-jwt";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   trustHost: true,
@@ -26,6 +27,12 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         token.role = "ADMIN";
         token.adminUserId = user.id;
         token.parentUserId = undefined;
+      }
+
+      if (account?.provider === "mobile-token") {
+        token.role = "PARENT";
+        token.parentUserId = (user as { parentUserId?: string }).parentUserId;
+        token.adminUserId = undefined;
       }
 
       if (account?.provider === "google" || account?.provider === "apple") {
@@ -115,6 +122,27 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
             clientSecret: env.AUTH_APPLE_SECRET
           })
         ]
-      : [])
+      : []),
+    // Mobile app token exchange — accepts a short-lived JWT issued by
+    // /api/mobile/auth/[provider] and converts it to a full NextAuth session.
+    Credentials({
+      id: "mobile-token",
+      name: "Mobile Token",
+      credentials: { token: { type: "text" } },
+      async authorize(credentials) {
+        if (!credentials?.token) return null;
+        try {
+          const payload = await verifyMobileToken(String(credentials.token));
+          return {
+            id: payload.parentUserId,
+            email: payload.email,
+            name: payload.name ?? null,
+            parentUserId: payload.parentUserId
+          };
+        } catch {
+          return null;
+        }
+      }
+    })
   ]
 });
