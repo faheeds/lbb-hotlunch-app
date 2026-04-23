@@ -7,10 +7,10 @@ import { prisma } from "@/lib/db";
 export const dynamic = "force-dynamic";
 
 const features = [
-  { text: "Two campuses",    sub: "Redmond & Bellevue",           icon: "location" },
-  { text: "20+ menu items", sub: "Burgers, salads, chicken & more", icon: "menu"     },
-  { text: "Add Your Kids", sub: "Faster checkout every time",    icon: "child"    },
-  { text: "Weekly planner", sub: "One checkout for the week",     icon: "calendar" },
+  { text: "Two campuses",    sub: "Catering Redmond and Bellevue campus", icon: "location", href: null       },
+  { text: "20+ menu items", sub: "Burgers, salads, chicken & more",       icon: "menu",     href: "/menu"    },
+  { text: "Add Your Kids",  sub: "Faster checkout every time",            icon: "child",    href: "/account" },
+  { text: "Weekly planner", sub: "One checkout for the week",             icon: "calendar", href: "/weekly"  },
 ];
 
 const steps = [
@@ -148,31 +148,41 @@ export default async function HomePage() {
         {/* ── Feature cards ───────────────────────────────────────── */}
         <div style={{ padding: "20px 20px 0" }}>
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
-            {features.map((f) => (
-              <div key={f.text} style={{
-                background: "white", borderRadius: 16, padding: "16px 14px",
-                boxShadow: "0 1px 4px rgba(28,5,5,0.08)",
-                border: "1px solid rgba(196,18,48,0.07)"
-              }}>
+            {features.map((f) => {
+              const card = (
                 <div style={{
-                  width: 38, height: 38, borderRadius: 11,
-                  background: "#fff1f2", display: "flex",
-                  alignItems: "center", justifyContent: "center", marginBottom: 11
+                  background: "white", borderRadius: 16, padding: "16px 14px",
+                  boxShadow: "0 1px 4px rgba(28,5,5,0.08)",
+                  border: "1px solid rgba(196,18,48,0.07)",
+                  height: "100%",
                 }}>
-                  <FeatureIcon name={f.icon} />
+                  <div style={{
+                    width: 38, height: 38, borderRadius: 11,
+                    background: "#fff1f2", display: "flex",
+                    alignItems: "center", justifyContent: "center", marginBottom: 11
+                  }}>
+                    <FeatureIcon name={f.icon} />
+                  </div>
+                  <p style={{
+                    fontSize: 13, fontWeight: 700, color: "#1c0505",
+                    marginBottom: 3, fontFamily: "var(--font-oswald)",
+                    textTransform: "uppercase", letterSpacing: "0.03em"
+                  }}>
+                    {f.text}
+                  </p>
+                  <p style={{ fontSize: 11, color: "#78716c", lineHeight: 1.4 }}>
+                    {f.sub}
+                  </p>
                 </div>
-                <p style={{
-                  fontSize: 13, fontWeight: 700, color: "#1c0505",
-                  marginBottom: 3, fontFamily: "var(--font-oswald)",
-                  textTransform: "uppercase", letterSpacing: "0.03em"
-                }}>
-                  {f.text}
-                </p>
-                <p style={{ fontSize: 11, color: "#78716c", lineHeight: 1.4 }}>
-                  {f.sub}
-                </p>
-              </div>
-            ))}
+              );
+              return f.href ? (
+                <Link key={f.text} href={f.href} style={{ textDecoration: "none", display: "block" }}>
+                  {card}
+                </Link>
+              ) : (
+                <div key={f.text}>{card}</div>
+              );
+            })}
           </div>
         </div>
 
