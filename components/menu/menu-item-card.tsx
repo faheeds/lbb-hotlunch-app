@@ -38,10 +38,10 @@ function fmt(cents: number) {
 
 export function MenuItemCard({ item, categoryIcon, categoryGradient }: Props) {
   const [imgFailed, setImgFailed] = useState(false);
+  const [addonsOpen, setAddonsOpen] = useState(false);
   const imageUrl = `https://medina.localbiggerburger.com/food/${item.slug}.jpeg`;
   const description = stripCategoryPrefix(item.description);
   const addons = item.options.filter((o) => o.optionType === "ADD_ON");
-  const removals = item.options.filter((o) => o.optionType === "REMOVAL");
 
   return (
     <div style={{
@@ -96,43 +96,42 @@ export function MenuItemCard({ item, categoryIcon, categoryGradient }: Props) {
           </p>
         )}
 
-        {/* Add-ons */}
+        {/* Add-ons — collapsible */}
         {addons.length > 0 && (
-          <div>
-            <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#9ca3af", marginBottom: 5 }}>
-              Add-ons available
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {addons.map((o) => (
-                <span key={o.id} style={{
-                  fontSize: 11, padding: "3px 8px", borderRadius: 20,
-                  background: "#fef3c7", color: "#92400e",
-                  border: "1px solid #fde68a", fontWeight: 500,
-                }}>
-                  + {o.name}{o.priceDeltaCents ? ` (${fmt(o.priceDeltaCents)})` : " (free)"}
-                </span>
-              ))}
-            </div>
-          </div>
-        )}
+          <div style={{ borderTop: "1px solid #f1f5f9", paddingTop: 8 }}>
+            <button
+              onClick={() => setAddonsOpen((o) => !o)}
+              style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                width: "100%", background: "none", border: "none",
+                padding: 0, cursor: "pointer",
+              }}
+            >
+              <span style={{ fontSize: 11, fontWeight: 600, color: "#92400e" }}>
+                + {addons.length} add-on{addons.length > 1 ? "s" : ""} available
+              </span>
+              <svg
+                width="14" height="14" viewBox="0 0 24 24" fill="none"
+                stroke="#9ca3af" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
+                style={{ transform: addonsOpen ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s" }}
+              >
+                <path d="M6 9l6 6 6-6"/>
+              </svg>
+            </button>
 
-        {/* Removals */}
-        {removals.length > 0 && (
-          <div>
-            <p style={{ fontSize: 10, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.1em", color: "#9ca3af", marginBottom: 5 }}>
-              Can remove
-            </p>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-              {removals.map((o) => (
-                <span key={o.id} style={{
-                  fontSize: 11, padding: "3px 8px", borderRadius: 20,
-                  background: "#fef2f2", color: "#991b1b",
-                  border: "1px solid #fecaca", fontWeight: 500,
-                }}>
-                  No {o.name}
-                </span>
-              ))}
-            </div>
+            {addonsOpen && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: 4, marginTop: 8 }}>
+                {addons.map((o) => (
+                  <span key={o.id} style={{
+                    fontSize: 11, padding: "3px 8px", borderRadius: 20,
+                    background: "#fef3c7", color: "#92400e",
+                    border: "1px solid #fde68a", fontWeight: 500,
+                  }}>
+                    + {o.name}{o.priceDeltaCents ? ` (${fmt(o.priceDeltaCents)})` : " (free)"}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
