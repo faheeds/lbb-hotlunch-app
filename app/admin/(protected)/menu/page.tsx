@@ -58,6 +58,15 @@ async function updateItemDescription(formData: FormData) {
   revalidatePath("/admin/menu");
 }
 
+async function updateItemImageUrl(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id"));
+  const imageUrl = String(formData.get("imageUrl") || "").trim() || null;
+  await prisma.menuItem.update({ where: { id }, data: { imageUrl } });
+  revalidatePath("/admin/menu");
+  revalidatePath("/menu");
+}
+
 const CATEGORIES = [
   "Signature Burgers & Sandwiches",
   "Salads with Protein",
@@ -217,6 +226,31 @@ export default async function AdminMenuPage() {
                     </summary>
 
                     <div className="border-t border-slate-50 px-4 py-3 space-y-3">
+                      {/* Photo URL */}
+                      <form action={updateItemImageUrl} className="space-y-1.5">
+                        <input type="hidden" name="id" value={item.id} />
+                        <label className="text-[11px] text-slate-500 block">Photo URL</label>
+                        <div className="flex gap-2 items-start">
+                          {item.imageUrl && (
+                            <img src={item.imageUrl} alt={item.name}
+                              className="w-12 h-12 rounded-lg object-cover flex-shrink-0 border border-slate-200" />
+                          )}
+                          <div className="flex-1 flex gap-2">
+                            <input
+                              name="imageUrl"
+                              type="url"
+                              defaultValue={item.imageUrl ?? ""}
+                              placeholder="Paste image URL from your restaurant site…"
+                              className="flex-1 rounded-lg border border-slate-200 text-[12px] px-3 py-1.5 min-w-0"
+                            />
+                            <button type="submit"
+                              className="px-3 py-1.5 rounded-lg bg-brand-700 text-white text-[11px] font-semibold flex-shrink-0 hover:bg-brand-800 transition">
+                              Save
+                            </button>
+                          </div>
+                        </div>
+                      </form>
+
                       {/* Toggle active */}
                       <div className="flex items-center justify-between">
                         <p className="text-[11px] text-slate-500 leading-relaxed max-w-[240px]">

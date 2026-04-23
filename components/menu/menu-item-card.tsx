@@ -15,6 +15,7 @@ type MenuItem = {
   slug: string;
   name: string;
   description: string | null;
+  imageUrl: string | null;
   basePriceCents: number;
   options: MenuOption[];
 };
@@ -39,7 +40,8 @@ function fmt(cents: number) {
 export function MenuItemCard({ item, categoryIcon, categoryGradient }: Props) {
   const [imgFailed, setImgFailed] = useState(false);
   const [addonsOpen, setAddonsOpen] = useState(false);
-  const imageUrl = `https://medina.localbiggerburger.com/food/${item.slug}.jpeg`;
+  // Use admin-uploaded URL from DB; fall back to nothing (shows placeholder)
+  const imageUrl = item.imageUrl ?? null;
   const description = stripCategoryPrefix(item.description);
   const addons = item.options.filter((o) => o.optionType === "ADD_ON");
 
@@ -54,7 +56,7 @@ export function MenuItemCard({ item, categoryIcon, categoryGradient }: Props) {
     }}>
       {/* Photo or gradient placeholder */}
       <div style={{ position: "relative", height: 160, overflow: "hidden", flexShrink: 0 }}>
-        {!imgFailed ? (
+        {imageUrl && !imgFailed ? (
           <img
             src={imageUrl}
             alt={item.name}
