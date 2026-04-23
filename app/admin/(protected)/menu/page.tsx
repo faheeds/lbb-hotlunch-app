@@ -40,6 +40,16 @@ async function toggleItemActive(formData: FormData) {
   revalidatePath("/admin/menu");
 }
 
+async function updateItemPrice(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id"));
+  const dollars = parseFloat(String(formData.get("price") || "0"));
+  if (isNaN(dollars) || dollars < 0) throw new Error("Invalid price");
+  const basePriceCents = Math.round(dollars * 100);
+  await prisma.menuItem.update({ where: { id }, data: { basePriceCents } });
+  revalidatePath("/admin/menu");
+}
+
 const CATEGORIES = [
   "Signature Burgers & Sandwiches",
   "Salads with Protein",
@@ -216,6 +226,27 @@ export default async function AdminMenuPage() {
                           </button>
                         </form>
                       </div>
+
+                      {/* Quick price edit */}
+                      <form action={updateItemPrice} className="flex items-center gap-2">
+                        <input type="hidden" name="id" value={item.id} />
+                        <label className="text-[11px] text-slate-500 flex-shrink-0">Price ($)</label>
+                        <div className="relative flex-1">
+                          <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[12px] text-slate-400">$</span>
+                          <input
+                            name="price"
+                            type="number"
+                            step="0.01"
+                            min="0"
+                            defaultValue={(item.basePriceCents / 100).toFixed(2)}
+                            className="w-full rounded-lg border border-slate-200 text-[13px] pl-6 pr-3 py-1.5"
+                          />
+                        </div>
+                        <button type="submit"
+                          className="px-3 py-1.5 rounded-lg bg-brand-700 text-white text-[11px] font-semibold flex-shrink-0 hover:bg-brand-800 transition">
+                          Save
+                        </button>
+                      </form>
 
                       {/* Add-ons */}
                       {addons.length > 0 && (
