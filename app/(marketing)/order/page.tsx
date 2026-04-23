@@ -105,6 +105,7 @@ export default async function OrderPage({
                     slug: item.slug,
                     name: item.name,
                     description: item.description,
+                    imageUrl: item.imageUrl ?? null,
                     basePriceCents: item.basePriceCents,
                     options: item.options.map((o) => ({
                       id: o.id,

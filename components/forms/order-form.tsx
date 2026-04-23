@@ -11,7 +11,7 @@ type DeliveryDate = {
   school: { id: string; name: string; timezone: string };
 };
 type MenuOption = { id: string; name: string; optionType: "ADD_ON" | "REMOVAL"; priceDeltaCents: number };
-type MenuItem = { id: string; slug: string; name: string; description: string | null; basePriceCents: number; options: MenuOption[] };
+type MenuItem = { id: string; slug: string; name: string; description: string | null; imageUrl: string | null; basePriceCents: number; options: MenuOption[] };
 type CartItem = { id: string; menuItemId: string; itemName: string; choice?: string; additions: string[]; removals: string[]; lineTotalCents: number };
 
 type OrderFormProps = {
@@ -391,9 +391,18 @@ export function OrderForm({
                         isSelected ? "border-brand-600 bg-brand-50 border-2" : inCart ? "border-green-200 bg-green-50/40 border" : "border-slate-100 bg-white"
                       )}
                     >
-                      <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0">
-                        {CATEGORY_ICONS[category] || "🍽"}
-                      </div>
+                      {item.imageUrl ? (
+                        <img
+                          src={item.imageUrl}
+                          alt={item.name}
+                          className="w-9 h-9 rounded-xl object-cover flex-shrink-0 border border-slate-100"
+                          onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = "none"; }}
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0">
+                          {CATEGORY_ICONS[category] || "🍽"}
+                        </div>
+                      )}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between gap-2">
                           <p className={cn("text-[13px] font-semibold leading-snug", isSelected ? "text-brand-900" : "text-ink")}>
