@@ -2,6 +2,9 @@ import Link from "next/link";
 import Image from "next/image";
 import { SiteHeader } from "@/components/site-header";
 import { AppNav } from "@/components/app-nav";
+import { prisma } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
 
 const features = [
   { text: "Two campuses",    sub: "Redmond & Bellevue",           icon: "location" },
@@ -16,7 +19,8 @@ const steps = [
   { n: "3", title: "Pay & confirm",       body: "Secure Stripe checkout. Confirmation email sent right away." },
 ];
 
-const foodStrip = [
+// Static fallbacks shown when fewer than 5 DB items have photos
+const staticFallbacks = [
   { src: "/food/Salad.jpg",              alt: "Fresh salad"            },
   { src: "/food/burger-cheesy.webp",     alt: "Smash burger"           },
   { src: "/food/chicken-tenders.jpeg",   alt: "Chicken tenders"        },
@@ -24,7 +28,20 @@ const foodStrip = [
   { src: "/food/chicken-sandwich.jpeg",  alt: "Crispy chicken sandwich"},
 ];
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Fetch up to 5 active menu items that have a photo set in the admin
+  const itemsWithPhotos = await prisma.menuItem.findMany({
+    where: { isActive: true, imageUrl: { not: null } },
+    select: { name: true, imageUrl: true },
+    take: 5,
+    orderBy: { updatedAt: "desc" },
+  });
+
+  // Build the strip: DB photos first, pad with static fallbacks if needed
+  const stripItems = [
+    ...itemsWithPhotos.map((i) => ({ src: i.imageUrl!, alt: i.name })),
+    ...staticFallbacks.slice(itemsWithPhotos.length),
+  ].slice(0, 5);
   return (
     <>
       <SiteHeader />
@@ -108,15 +125,22 @@ export default function HomePage() {
             display: "flex", gap: 10, overflowX: "auto",
             paddingBottom: 4, scrollSnapType: "x mandatory"
           }}>
-            {foodStrip.map((item) => (
-              <div key={item.src} style={{
+            {stripItems.map((item, i) => (
+              <Link key={i} href="/menu" style={{
                 flexShrink: 0, width: 90, height: 90,
                 borderRadius: 14, overflow: "hidden",
                 position: "relative", scrollSnapAlign: "start",
-                boxShadow: "0 3px 10px rgba(28,5,5,0.18)"
+                boxShadow: "0 3px 10px rgba(28,5,5,0.18)",
+                display: "block", textDecoration: "none",
               }}>
-                <Image src={item.src} alt={item.alt} fill style={{ objectFit: "cover" }} />
-              </div>
+                {item.src.startsWith("/") ? (
+                  <Image src={item.src} alt={item.alt} fill style={{ objectFit: "cover" }} />
+                ) : (
+                  // External URL (from admin portal) — use plain img tag
+                  <img src={item.src} alt={item.alt}
+                    style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }} />
+                )}
+              </Link>
             ))}
           </div>
         </div>
