@@ -67,6 +67,7 @@ export function SiteHeader() {
             { href: "/weekly",  label: "Weekly plan"   },
             { href: "/history", label: "Order history" },
             { href: "/account", label: "My account"    },
+            { href: "/contact", label: "Contact us"    },
           ].map((item) => (
             <Link key={item.href} href={item.href} onClick={() => setMenuOpen(false)} style={{
               display: "block", padding: "11px 14px", borderRadius: 10,
