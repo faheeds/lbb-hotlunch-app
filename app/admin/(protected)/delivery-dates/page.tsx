@@ -8,23 +8,28 @@ export const dynamic = "force-dynamic";
 
 async function createDeliveryDate(formData: FormData) {
   "use server";
-  const parsed = deliveryDateSchema.parse({
-    schoolId: formData.get("schoolId"),
-    deliveryDate: formData.get("deliveryDate"),
-    cutoffAt: formData.get("cutoffAt"),
-    orderingOpen: formData.get("orderingOpen") === "on",
-    notes: formData.get("notes")
-  });
-  await prisma.deliveryDate.create({
-    data: {
-      schoolId: parsed.schoolId,
-      deliveryDate: fromZonedTime(`${parsed.deliveryDate} 11:00:00`, "America/Los_Angeles"),
-      cutoffAt: fromZonedTime(parsed.cutoffAt.replace("T", " ") + ":00", "America/Los_Angeles"),
-      orderingOpen: parsed.orderingOpen,
-      notes: parsed.notes || null
-    }
-  });
-  revalidatePath("/admin/delivery-dates");
+  try {
+    const parsed = deliveryDateSchema.parse({
+      schoolId: formData.get("schoolId"),
+      deliveryDate: formData.get("deliveryDate"),
+      cutoffAt: formData.get("cutoffAt"),
+      orderingOpen: formData.get("orderingOpen") === "on",
+      notes: formData.get("notes")
+    });
+    await prisma.deliveryDate.create({
+      data: {
+        schoolId: parsed.schoolId,
+        deliveryDate: fromZonedTime(`${parsed.deliveryDate} 11:00:00`, "America/Los_Angeles"),
+        cutoffAt: fromZonedTime(parsed.cutoffAt.replace("T", " ") + ":00", "America/Los_Angeles"),
+        orderingOpen: parsed.orderingOpen,
+        notes: parsed.notes || null
+      }
+    });
+    revalidatePath("/admin/delivery-dates");
+  } catch (err) {
+    console.error("createDeliveryDate error:", err);
+    // Swallow — page will re-render without crashing
+  }
 }
 
 async function toggleDateOpen(formData: FormData) {
