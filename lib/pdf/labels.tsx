@@ -10,39 +10,73 @@ type LabelOrder = Order & {
   items: OrderItem[];
 };
 
+// A4 = 595.28 x 841.89pt. Labels are 4"x2" = 288x144pt, 2-up per row, 5 rows = 10 labels/page.
+// Horizontal padding = (595.28 - 2*288) / 2 ≈ 9.6pt — labels sit flush edge-to-edge.
+const LABEL_W = 288; // 4 inches
+const LABEL_H = 144; // 2 inches
+const H_PAD = 9.6;
+
 const styles = StyleSheet.create({
   page: {
-    padding: 24,
-    fontSize: 10,
+    paddingHorizontal: H_PAD,
+    paddingTop: 8,
+    paddingBottom: 4,
     fontFamily: "Helvetica"
+  },
+  pageTitle: {
+    fontSize: 8,
+    color: "#888",
+    marginBottom: 4,
+    textAlign: "center"
   },
   grid: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 10
+    flexWrap: "wrap"
   },
   label: {
-    width: "48%",
-    minHeight: 140,
+    width: LABEL_W,
+    height: LABEL_H,
     border: "1 solid #d0d7de",
-    borderRadius: 8,
-    padding: 10,
-    marginBottom: 10
+    borderRadius: 4,
+    padding: 7,
+    overflow: "hidden"
   },
-  title: {
-    fontSize: 14,
-    fontWeight: 700
+  studentName: {
+    fontSize: 11,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 1
   },
   meta: {
-    marginTop: 4,
-    color: "#555"
+    fontSize: 7.5,
+    color: "#444",
+    marginBottom: 1
+  },
+  itemSection: {
+    marginTop: 5
+  },
+  itemName: {
+    fontSize: 9,
+    fontFamily: "Helvetica-Bold",
+    marginBottom: 1
+  },
+  customization: {
+    fontSize: 7,
+    color: "#333",
+    marginBottom: 1
+  },
+  orderNum: {
+    fontSize: 6.5,
+    color: "#999",
+    marginTop: 4
   },
   alert: {
-    marginTop: 8,
-    padding: 6,
-    borderRadius: 6,
+    marginTop: 4,
+    paddingHorizontal: 4,
+    paddingVertical: 3,
+    borderRadius: 3,
     backgroundColor: "#fde7e7",
-    color: "#7a271a"
+    color: "#7a271a",
+    fontSize: 7
   }
 });
 
@@ -50,30 +84,27 @@ function LabelCard({ order }: { order: LabelOrder }) {
   const allergy = order.items.map((item) => item.allergyNotes).find(Boolean) || order.student.allergyNotes;
   const itemLines = order.items.map((item) => ({
     name: item.itemNameSnapshot,
-    additions: item.additions.length ? item.additions.join(", ") : "None",
-    removals: item.removals.length ? item.removals.join(", ") : "None"
+    additions: item.additions.length ? item.additions.join(", ") : null,
+    removals: item.removals.length ? item.removals.join(", ") : null
   }));
 
   return (
     <View style={styles.label}>
-      <>
-        <Text style={styles.title}>{order.student.studentName}</Text>
-        <Text style={styles.meta}>
-          Grade {order.student.grade} | {order.school.name}
-        </Text>
-        <Text style={styles.meta}>
-          {order.student.teacherName || "Teacher n/a"} {order.student.classroom ? `| Room ${order.student.classroom}` : ""}
-        </Text>
-        {itemLines.map((item, index) => (
-          <View key={`${order.id}-${index}`} style={{ marginTop: 8 }}>
-            <Text style={{ fontSize: 12 }}>{item.name}</Text>
-            <Text>Add: {item.additions}</Text>
-            <Text>No: {item.removals}</Text>
-          </View>
-        ))}
-        <Text>Order: {order.orderNumber}</Text>
-        {allergy ? <Text style={styles.alert}>Allergy / diet: {allergy}</Text> : null}
-      </>
+      <Text style={styles.studentName}>{order.student.studentName}</Text>
+      <Text style={styles.meta}>
+        Grade {order.student.grade}{order.student.classroom ? ` · Room ${order.student.classroom}` : ""} · {order.school.name}
+      </Text>
+
+      {itemLines.map((item, index) => (
+        <View key={`${order.id}-${index}`} style={styles.itemSection}>
+          <Text style={styles.itemName}>{item.name}</Text>
+          {item.additions && <Text style={styles.customization}>+ {item.additions}</Text>}
+          {item.removals && <Text style={styles.customization}>No: {item.removals}</Text>}
+        </View>
+      ))}
+
+      {allergy ? <Text style={styles.alert}>⚠ {allergy}</Text> : null}
+      <Text style={styles.orderNum}>{order.orderNumber}</Text>
     </View>
   );
 }
@@ -85,8 +116,8 @@ function LabelsDocument({ orders }: { orders: LabelOrder[] }) {
 
   return (
     <Document title={`Labels ${titleDate ?? ""}`}>
-      <Page size="LETTER" style={styles.page}>
-        <Text style={{ marginBottom: 12, fontSize: 16 }}>Student labels {titleDate ? `- ${titleDate}` : ""}</Text>
+      <Page size="A4" style={styles.page}>
+        {titleDate && <Text style={styles.pageTitle}>Student labels — {titleDate}</Text>}
         <View style={styles.grid}>
           {orders.map((order) => (
             <LabelCard key={order.id} order={order} />
