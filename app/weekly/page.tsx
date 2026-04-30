@@ -74,9 +74,12 @@ export default async function WeeklyPage() {
         <div className="px-4 py-4">
           <p className="text-[9px] font-semibold uppercase tracking-[0.16em] text-brand-700 mb-0.5">Meal planning</p>
           <h1 className="text-[20px] font-semibold text-ink mb-1">Weekly lunch plan</h1>
-          <p className="text-[12px] text-slate-500 leading-relaxed mb-4">
+          <p className="text-[12px] text-slate-500 leading-relaxed mb-3">
             Plan a meal for each upcoming day — we&apos;ll bundle it into one checkout for the whole week.
           </p>
+          <div className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 mb-4 text-[12.5px] text-amber-900 leading-relaxed">
+            <span className="font-semibold">Note:</span> Hot lunch is available for Kindergarten through Grade 10 only. We are not currently serving Pre-K or Preschool students.
+          </div>
 
           <div className="rounded-[18px] border border-slate-100 bg-white p-4">
             <WeeklyPlanPlanner

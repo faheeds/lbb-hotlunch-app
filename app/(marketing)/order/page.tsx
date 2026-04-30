@@ -87,6 +87,9 @@ export default async function OrderPage({
       <SiteHeader />
       <main className="app-content">
         <div className="px-4 py-4">
+          <div className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 mb-4 text-[12.5px] text-amber-900 leading-relaxed">
+            <span className="font-semibold">Note:</span> Hot lunch is available for Kindergarten through Grade 10 only. We are not currently serving Pre-K or Preschool students.
+          </div>
           {deliveryDates.length ? (
             <OrderForm
               deliveryDates={deliveryDates.map((date) => ({
