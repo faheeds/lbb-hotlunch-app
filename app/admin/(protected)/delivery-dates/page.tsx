@@ -34,10 +34,14 @@ async function createDeliveryDate(formData: FormData) {
 
 async function toggleDateOpen(formData: FormData) {
   "use server";
-  const id = String(formData.get("id"));
-  const current = await prisma.deliveryDate.findUnique({ where: { id }, select: { orderingOpen: true } });
-  await prisma.deliveryDate.update({ where: { id }, data: { orderingOpen: !current?.orderingOpen } });
-  revalidatePath("/admin/delivery-dates");
+  try {
+    const id = String(formData.get("id"));
+    const current = await prisma.deliveryDate.findUnique({ where: { id }, select: { orderingOpen: true } });
+    await prisma.deliveryDate.update({ where: { id }, data: { orderingOpen: !current?.orderingOpen } });
+    revalidatePath("/admin/delivery-dates");
+  } catch (err) {
+    console.error("toggleDateOpen error:", err);
+  }
 }
 
 async function updateCutoff(formData: FormData) {
