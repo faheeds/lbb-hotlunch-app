@@ -40,6 +40,19 @@ async function toggleDateOpen(formData: FormData) {
   revalidatePath("/admin/delivery-dates");
 }
 
+async function updateCutoff(formData: FormData) {
+  "use server";
+  const id = String(formData.get("id"));
+  const cutoffRaw = String(formData.get("cutoffAt"));
+  try {
+    const cutoffAt = fromZonedTime(cutoffRaw.replace("T", " ") + ":00", "America/Los_Angeles");
+    await prisma.deliveryDate.update({ where: { id }, data: { cutoffAt, orderingOpen: true } });
+    revalidatePath("/admin/delivery-dates");
+  } catch (err) {
+    console.error("updateCutoff error:", err);
+  }
+}
+
 async function attachMenuItems(formData: FormData) {
   "use server";
   const deliveryDateId = String(formData.get("deliveryDateId"));
@@ -181,6 +194,25 @@ export default async function DeliveryDatesPage() {
                       </button>
                     </form>
                   </div>
+
+                  {/* Edit cutoff */}
+                  <details className="rounded-lg border border-slate-100 overflow-hidden">
+                    <summary className="px-3 py-2 text-[12px] text-slate-500 font-medium cursor-pointer list-none">
+                      ✎ Update cutoff &amp; reopen
+                    </summary>
+                    <form action={updateCutoff} className="px-3 pb-3 border-t border-slate-50 pt-2 flex gap-2 items-end">
+                      <input type="hidden" name="id" value={date.id} />
+                      <div className="flex-1">
+                        <label className="text-[10px] text-slate-400 mb-1 block">New cutoff (Pacific time)</label>
+                        <input type="datetime-local" name="cutoffAt" required
+                          className="w-full rounded-lg border-slate-200 text-[12px] px-2 py-1.5" />
+                      </div>
+                      <button type="submit"
+                        className="px-3 py-1.5 rounded-lg bg-brand-700 text-white text-[12px] font-semibold flex-shrink-0">
+                        Save &amp; reopen
+                      </button>
+                    </form>
+                  </details>
 
                   {/* Menu items on this date */}
                   {date.menuAvailability.length > 0 && (
