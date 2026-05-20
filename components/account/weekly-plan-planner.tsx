@@ -54,10 +54,19 @@ type WeeklyPlanSummary = {
   sortOrder: number;
 };
 
+type PurgedItem = {
+  weekday: number;
+  weekdayLabel: string;
+  studentName: string;
+  menuItemName: string;
+};
+
 type PlannerProps = {
   children: ChildSummary[];
   deliveryDates: DeliveryDate[];
   existingPlans: WeeklyPlanSummary[];
+  purgedItems?: PurgedItem[];
+  upcomingCutoffs?: string[];
 };
 
 const WEEKDAY_LABELS: Record<number, { short: string; long: string }> = {
@@ -108,7 +117,10 @@ function getDesc(item: MenuItem) {
   return item.description ?? "";
 }
 
-export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: PlannerProps) {
+export function WeeklyPlanPlanner({
+  children, deliveryDates, existingPlans,
+  purgedItems = [], upcomingCutoffs = []
+}: PlannerProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [selectedChildId, setSelectedChildId] = useState(children[0]?.id ?? "");
@@ -120,6 +132,50 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
   const [error, setError] = useState("");
   const [showAdder, setShowAdder] = useState(false);
   const customizePanelRef = useRef<HTMLDivElement>(null);
+  const triggeredCutoffs = useRef<Set<string>>(new Set());
+
+  const purgedKey = useMemo(
+    () =>
+      purgedItems
+        .map((p) => `${p.weekday}-${p.studentName}-${p.menuItemName}`)
+        .sort()
+        .join("|"),
+    [purgedItems]
+  );
+  const [dismissedKey, setDismissedKey] = useState("");
+  const noticeVisible = purgedItems.length > 0 && dismissedKey !== purgedKey;
+
+  const purgedDayLabel = useMemo(() => {
+    const labels = [...new Set(purgedItems.map((p) => p.weekday))]
+      .sort((a, b) => a - b)
+      .map((w) => WEEKDAY_LABELS[w]?.long ?? `Day ${w}`);
+    if (labels.length === 0) return "";
+    if (labels.length === 1) return labels[0];
+    if (labels.length === 2) return `${labels[0]} and ${labels[1]}`;
+    return `${labels.slice(0, -1).join(", ")}, and ${labels[labels.length - 1]}`;
+  }, [purgedItems]);
+  const purgedWindowNoun =
+    new Set(purgedItems.map((p) => p.weekday)).size <= 1 ? "order window" : "order windows";
+
+  // Refresh once whenever a known cutoff crosses while the page is open, so the
+  // server can re-purge and the planner reflects the new state. Each cutoff
+  // timestamp only triggers one refresh — repeated ticks against the same
+  // already-crossed cutoff are no-ops.
+  useEffect(() => {
+    if (!upcomingCutoffs.length) return;
+    function tick() {
+      const nowMs = Date.now();
+      const newlyCrossed = upcomingCutoffs.filter(
+        (iso) => new Date(iso).getTime() <= nowMs && !triggeredCutoffs.current.has(iso)
+      );
+      if (!newlyCrossed.length) return;
+      for (const iso of newlyCrossed) triggeredCutoffs.current.add(iso);
+      startTransition(() => router.refresh());
+    }
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, [upcomingCutoffs, router]);
 
   // Scroll to the customize panel whenever a menu item is selected
   useEffect(() => {
@@ -196,6 +252,10 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
       return acc;
     }, {});
   }, [existingPlans, selectedChildId]);
+  const hasAnyPlansForChild = useMemo(
+    () => Object.values(plansByWeekday).some((arr) => arr.length > 0),
+    [plansByWeekday]
+  );
 
   function toggle(value: string, current: string[], setter: (v: string[]) => void) {
     setter(current.includes(value) ? current.filter((i) => i !== value) : [...current, value]);
@@ -287,6 +347,22 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
 
   return (
     <div className="space-y-4 border-t border-slate-100 pt-4">
+      {noticeVisible && (
+        <div className="rounded-[14px] border border-amber-200 bg-amber-50 px-4 py-3 text-[12.5px] text-amber-900 leading-relaxed flex items-start gap-3">
+          <span aria-hidden>⚠</span>
+          <p className="flex-1">
+            {purgedDayLabel}&apos;s {purgedWindowNoun} closed before checkout. We&apos;ve removed those items so you can complete the rest of your week.
+          </p>
+          <button
+            type="button"
+            onClick={() => setDismissedKey(purgedKey)}
+            aria-label="Dismiss"
+            className="text-amber-700 text-[14px] leading-none -mt-0.5"
+          >
+            ×
+          </button>
+        </div>
+      )}
       {/* Child selector */}
       <div>
         <p className="text-[11px] font-semibold text-ink mb-2">1. Pick a child</p>
@@ -354,6 +430,10 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
               })}
             </div>
           </div>
+
+          {!hasAnyPlansForChild && !selectedWeekday && (
+            <p className="text-[12px] text-slate-500 text-center">Tap a day above to plan a meal.</p>
+          )}
 
           {/* Day panel */}
           {activeDay && (

@@ -8,3 +8,7 @@ dist
 prisma/dev.db
 
 tsconfig.tsbuildinfo
+.vercel
+.env*.local
+
+.claude/

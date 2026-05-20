@@ -2,13 +2,20 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireParent } from "@/lib/parent-auth";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
-import { getUpcomingOrderingWindowRange } from "@/lib/weekly-week";
+import { getUpcomingOrderingWindowRange, getWeekdayNumber } from "@/lib/weekly-week";
 import { SiteHeader } from "@/components/site-header";
 import { AppNav } from "@/components/app-nav";
 import { WeeklyPlanPlanner } from "@/components/account/weekly-plan-planner";
 import { WeeklyCheckoutButton } from "@/components/account/weekly-checkout-button";
 
 export const dynamic = "force-dynamic";
+
+const WEEKDAY_LABELS: Record<number, string> = {
+  1: "Monday",
+  2: "Tuesday",
+  3: "Wednesday",
+  4: "Thursday"
+};
 
 export default async function WeeklyPage() {
   const session = await requireParent();
@@ -41,12 +48,11 @@ export default async function WeeklyPage() {
   const range = getUpcomingOrderingWindowRange(now, primaryTimezone);
   const schoolIds = [...new Set(parent.children.map((c) => c.schoolId))];
 
-  const deliveryDates = schoolIds.length
+  const allDeliveryDatesInWindow = schoolIds.length
     ? await prisma.deliveryDate.findMany({
         where: {
           schoolId: { in: schoolIds },
           orderingOpen: true,
-          cutoffAt: { gt: now },
           deliveryDate: { gte: range.start, lte: range.end },
           school: { isActive: true, slug: { in: [...ALLOWED_SCHOOL_SLUGS] } }
         },
@@ -65,7 +71,40 @@ export default async function WeeklyPage() {
       })
     : [];
 
-  const activeWeeklyPlanCount = parent.weeklyPlans.filter((p) => p.isActive).length;
+  // Auto-purge weekly plans whose matching delivery date has passed cutoff. These
+  // would block weekly checkout (lib/weekly-checkout.ts treats them as fatal) and
+  // are no longer editable from the planner — the day's tab disappears once its
+  // delivery date drops out of the open list. Plans whose weekday has no
+  // scheduled delivery date at all are left alone (may belong to a future cycle).
+  const orphanedPlans = parent.weeklyPlans.filter((plan) => {
+    const match = allDeliveryDatesInWindow.find(
+      (d) =>
+        d.schoolId === plan.schoolId &&
+        getWeekdayNumber(d.deliveryDate, d.school.timezone) === plan.weekday
+    );
+    return match !== undefined && match.cutoffAt <= now;
+  });
+
+  let purgedItems: { weekday: number; weekdayLabel: string; studentName: string; menuItemName: string }[] = [];
+  if (orphanedPlans.length) {
+    await prisma.weeklyLunchPlan.deleteMany({
+      where: {
+        parentUserId,
+        id: { in: orphanedPlans.map((p) => p.id) }
+      }
+    });
+    purgedItems = orphanedPlans.map((p) => ({
+      weekday: p.weekday,
+      weekdayLabel: WEEKDAY_LABELS[p.weekday] ?? `Day ${p.weekday}`,
+      studentName: p.parentChild.studentName,
+      menuItemName: p.menuItem.name
+    }));
+  }
+
+  const orphanedIds = new Set(orphanedPlans.map((p) => p.id));
+  const remainingPlans = parent.weeklyPlans.filter((p) => !orphanedIds.has(p.id));
+  const deliveryDates = allDeliveryDatesInWindow.filter((d) => d.cutoffAt > now);
+  const activeWeeklyPlanCount = remainingPlans.filter((p) => p.isActive).length;
 
   return (
     <>
@@ -115,7 +154,7 @@ export default async function WeeklyPage() {
                   }))
                 }))
               }))}
-              existingPlans={parent.weeklyPlans.map((p) => ({
+              existingPlans={remainingPlans.map((p) => ({
                 id: p.id,
                 parentChildId: p.parentChildId,
                 weekday: p.weekday,
@@ -127,6 +166,8 @@ export default async function WeeklyPage() {
                 isActive: p.isActive,
                 sortOrder: p.sortOrder
               }))}
+              purgedItems={purgedItems}
+              upcomingCutoffs={deliveryDates.map((d) => d.cutoffAt.toISOString())}
             />
           </div>
         </div>
