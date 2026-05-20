@@ -9,7 +9,7 @@ type OrderListItem = {
   id: string; orderNumber: string; status: string; archivedAt: string | Date | null; createdAt: string | Date; totalCents: number; specialInstructions: string | null; parentName: string; parentEmail: string;
   school: { name: string; timezone: string };
   deliveryDate: { deliveryDate: string | Date };
-  student: { studentName: string; grade: string; teacherName: string | null; classroom: string | null; allergyNotes: string | null };
+  student: { studentName: string; grade: string; classroom: string | null; allergyNotes: string | null };
   items: { itemNameSnapshot: string; additions: string[]; removals: string[]; allergyNotes: string | null }[];
 };
 

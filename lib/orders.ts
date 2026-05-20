@@ -159,7 +159,6 @@ export async function createPendingOrder(input: OrderDraftInput, checkoutSession
         schoolId: parsed.schoolId,
         studentName: parsed.studentName,
         grade: parsed.grade,
-        teacherName: parsed.teacherName || null,
         classroom: parsed.classroom || null,
         allergyNotes: parsed.allergyNotes || null,
         dietaryNotes: parsed.dietaryNotes || null
@@ -308,7 +307,6 @@ export async function listOrders(filters: {
 
 export async function updateOrderBeforeCutoff(args: {
   orderId: string;
-  teacherName?: string;
   classroom?: string;
   additions: string[];
   removals: string[];
@@ -359,7 +357,6 @@ export async function updateOrderBeforeCutoff(args: {
     await tx.student.update({
       where: { id: order.studentId },
       data: {
-        teacherName: args.teacherName || null,
         classroom: args.classroom || null,
         allergyNotes: args.allergyNotes || null,
         dietaryNotes: args.dietaryNotes || null

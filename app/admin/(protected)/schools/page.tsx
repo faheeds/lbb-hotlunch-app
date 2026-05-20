@@ -14,7 +14,6 @@ async function createSchool(formData: FormData) {
     timezone: formData.get("timezone"),
     defaultCutoffHour: formData.get("defaultCutoffHour"),
     defaultCutoffMinute: formData.get("defaultCutoffMinute"),
-    collectTeacher: formData.get("collectTeacher") === "on",
     collectClassroom: formData.get("collectClassroom") === "on",
     isActive: formData.get("isActive") === "on"
   });
@@ -71,9 +70,6 @@ export default async function AdminSchoolsPage() {
           </div>
           <div className="flex gap-4 flex-wrap pt-1">
             <label className="flex items-center gap-2 text-[12px] text-slate-600 cursor-pointer">
-              <input type="checkbox" name="collectTeacher" defaultChecked className="rounded" /> Collect teacher
-            </label>
-            <label className="flex items-center gap-2 text-[12px] text-slate-600 cursor-pointer">
               <input type="checkbox" name="collectClassroom" defaultChecked className="rounded" /> Collect classroom
             </label>
             <label className="flex items-center gap-2 text-[12px] text-slate-600 cursor-pointer">
@@ -99,8 +95,8 @@ export default async function AdminSchoolsPage() {
               </div>
               <p className="text-[11px] text-slate-500 mt-0.5">{school.timezone}</p>
               <p className="text-[11px] text-slate-400">
-                Cutoff {school.defaultCutoffHour}:{String(school.defaultCutoffMinute).padStart(2, "0")} &middot;
-                {school.collectTeacher ? " Teacher" : ""}{school.collectClassroom ? " · Classroom" : ""}
+                Cutoff {school.defaultCutoffHour}:{String(school.defaultCutoffMinute).padStart(2, "0")}
+                {school.collectClassroom ? " · Classroom" : ""}
               </p>
             </div>
             <form action={toggleSchool}>

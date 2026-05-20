@@ -34,7 +34,6 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
     "use server";
     await updateOrderBeforeCutoff({
       orderId,
-      teacherName: String(formData.get("teacherName") || ""),
       classroom: String(formData.get("classroom") || ""),
       additions: formData.getAll("additions").map(String),
       removals: formData.getAll("removals").map(String),
@@ -94,17 +93,10 @@ export default async function AdminOrderDetailPage({ params }: { params: Promise
           </div>
 
           <div className="px-4 py-3 space-y-3">
-            <div className="grid grid-cols-2 gap-2">
-              <div>
-                <label className="text-[11px] text-slate-500 mb-1 block">Teacher</label>
-                <input name="teacherName" defaultValue={order.student.teacherName ?? ""}
-                  className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
-              </div>
-              <div>
-                <label className="text-[11px] text-slate-500 mb-1 block">Classroom</label>
-                <input name="classroom" defaultValue={order.student.classroom ?? ""}
-                  className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
-              </div>
+            <div>
+              <label className="text-[11px] text-slate-500 mb-1 block">Classroom</label>
+              <input name="classroom" defaultValue={order.student.classroom ?? ""}
+                className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
             </div>
 
             {item && (

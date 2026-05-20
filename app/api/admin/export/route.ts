@@ -34,7 +34,7 @@ export async function GET(request: Request) {
     school: order.school.name,
     studentName: order.student.studentName,
     grade: order.student.grade,
-    teacher: order.student.teacherName ?? "",
+    teacher: "",
     classroom: order.student.classroom ?? "",
     item: order.items.map((item) => item.itemNameSnapshot).join(", "),
     additions: formatList(order.items.flatMap((item) => item.additions)),

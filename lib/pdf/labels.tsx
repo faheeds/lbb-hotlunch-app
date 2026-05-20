@@ -42,25 +42,25 @@ const styles = StyleSheet.create({
     overflow: "hidden"
   },
   studentName: {
-    fontSize: 11,
+    fontSize: 14,
     fontFamily: "Helvetica-Bold",
     marginBottom: 1
   },
   meta: {
-    fontSize: 7.5,
+    fontSize: 9,
     color: "#444",
     marginBottom: 1
   },
   itemSection: {
-    marginTop: 5
+    marginTop: 6
   },
   itemName: {
-    fontSize: 9,
+    fontSize: 12,
     fontFamily: "Helvetica-Bold",
     marginBottom: 1
   },
   customization: {
-    fontSize: 7,
+    fontSize: 8,
     color: "#333",
     marginBottom: 1
   },
@@ -76,7 +76,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
     backgroundColor: "#fde7e7",
     color: "#7a271a",
-    fontSize: 7
+    fontSize: 8
   }
 });
 
@@ -109,21 +109,37 @@ function LabelCard({ order }: { order: LabelOrder }) {
   );
 }
 
+// Avery 5163 grid is 2 columns × 5 rows. Chunk strictly so @react-pdf doesn't
+// try to fit more labels per page than the physical sheet has cells (it ignores
+// `height: 144` on flex-wrapped children, sizing cells to content instead).
+const LABELS_PER_PAGE = 10;
+
+function chunkOrders(orders: LabelOrder[]): LabelOrder[][] {
+  const pages: LabelOrder[][] = [];
+  for (let i = 0; i < orders.length; i += LABELS_PER_PAGE) {
+    pages.push(orders.slice(i, i + LABELS_PER_PAGE));
+  }
+  return pages;
+}
+
 function LabelsDocument({ orders }: { orders: LabelOrder[] }) {
   const titleDate =
     orders[0] &&
     formatInTimeZone(orders[0].deliveryDate.deliveryDate, orders[0].school.timezone, "EEEE, MMM d");
+  const pages = chunkOrders(orders);
 
   return (
     <Document title={`Labels ${titleDate ?? ""}`}>
-      <Page size="A4" style={styles.page}>
-        {titleDate && <Text style={styles.pageTitle}>Student labels — {titleDate}</Text>}
-        <View style={styles.grid}>
-          {orders.map((order) => (
-            <LabelCard key={order.id} order={order} />
-          ))}
-        </View>
-      </Page>
+      {pages.map((pageOrders, pageIdx) => (
+        <Page key={pageIdx} size="A4" style={styles.page}>
+          {titleDate && <Text style={styles.pageTitle}>Student labels — {titleDate}</Text>}
+          <View style={styles.grid}>
+            {pageOrders.map((order) => (
+              <LabelCard key={order.id} order={order} />
+            ))}
+          </View>
+        </Page>
+      ))}
     </Document>
   );
 }
@@ -140,7 +156,6 @@ export function mapOrderToLabelRows(orders: LabelOrder[]) {
       studentName: order.student.studentName,
       grade: order.student.grade,
       school: order.school.name,
-      teacher: order.student.teacherName ?? "",
       classroom: order.student.classroom ?? "",
       itemName: order.items.map((item) => item.itemNameSnapshot).join(" | "),
       additions: order.items.flatMap((item) => item.additions),
