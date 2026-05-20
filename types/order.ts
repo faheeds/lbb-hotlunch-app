@@ -13,7 +13,6 @@ export type OrderDraftInput = {
   parentChildId?: string;
   studentName: string;
   grade: string;
-  teacherName?: string;
   classroom?: string;
   cartItems: OrderCartItemInput[];
   allergyNotes?: string;

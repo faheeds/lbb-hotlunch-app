@@ -37,14 +37,13 @@ export default async function LabelsPrintPage({
       `}</style>
       <div className="label-grid grid grid-cols-2 gap-3">
         {labels.map((label) => (
-          <div key={label.orderId} className="label-card rounded-xl border border-slate-300 p-3 text-[11px] leading-4">
+          <div key={label.orderId} className="label-card rounded-xl border border-slate-300 p-3 text-[12px] leading-4">
             <>
-              <p className="text-sm font-bold">{label.studentName}</p>
+              <p className="text-base font-bold">{label.studentName}</p>
               <p>
-                Grade {label.grade} | {label.school}
+                Grade {label.grade}{label.classroom ? ` · Room ${label.classroom}` : ""} · {label.school}
               </p>
-              <p>{label.teacher ? `${label.teacher}` : "Teacher n/a"} {label.classroom ? `| Room ${label.classroom}` : ""}</p>
-              <p className="mt-2 font-semibold">{label.itemName}</p>
+              <p className="mt-2 text-base font-bold">{label.itemName}</p>
               <p>Add: {label.additions.length ? label.additions.join(", ") : "None"}</p>
               <p>No: {label.removals.length ? label.removals.join(", ") : "None"}</p>
               <p>Order: {label.orderNumber}</p>

@@ -8,3 +8,6 @@ dist
 prisma/dev.db
 
 tsconfig.tsbuildinfo
+
+out/
+scripts/scratch*

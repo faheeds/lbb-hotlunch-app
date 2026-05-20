@@ -20,7 +20,6 @@ export const orderFormSchema = z.object({
   parentChildId: z.string().optional(),
   studentName: z.string().min(2),
   grade: z.string().min(1),
-  teacherName: optionalTextField,
   classroom: optionalTextField,
   cartItems: z.array(orderCartItemSchema).min(1, "Add at least one item to the cart."),
   allergyNotes: optionalTextField,
@@ -39,7 +38,6 @@ export const schoolSchema = z.object({
   timezone: z.string().min(2),
   defaultCutoffHour: z.coerce.number().int().min(0).max(23),
   defaultCutoffMinute: z.coerce.number().int().min(0).max(59),
-  collectTeacher: z.coerce.boolean().default(true),
   collectClassroom: z.coerce.boolean().default(true),
   isActive: z.coerce.boolean().default(true)
 });

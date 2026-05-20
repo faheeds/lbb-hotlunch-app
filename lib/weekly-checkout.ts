@@ -243,7 +243,6 @@ export async function markWeeklyBatchPaidByCheckoutSession(
           schoolId: item.schoolId,
           studentName: item.parentChild.studentName,
           grade: item.parentChild.grade,
-          teacherName: item.parentChild.teacherName,
           classroom: item.parentChild.classroom,
           allergyNotes: item.parentChild.allergyNotes,
           dietaryNotes: item.parentChild.dietaryNotes
