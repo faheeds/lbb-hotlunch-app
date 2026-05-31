@@ -4,6 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { menuItemSchema, menuOptionSchema } from "@/lib/validation/order";
 import { slugify } from "@/lib/utils";
+import { getItemCategory, getCategoryList, categoryIcon } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -40,6 +41,7 @@ async function createMenuItem(formData: FormData) {
       name: formData.get("name"),
       slug: slugify(String(formData.get("name") || "")),
       description: formData.get("description"),
+      category: formData.get("category"),
       basePriceCents,
       isActive: formData.get("isActive") === "on"
     });
@@ -70,6 +72,56 @@ async function createMenuOption(formData: FormData) {
   } catch (err) {
     console.error("createMenuOption error:", err);
     dest = `/admin/menu?error=${encodeURIComponent("Could not add the option. Check the fields and try again.")}`;
+  }
+  redirect(dest);
+}
+
+async function updateItemCategory(formData: FormData) {
+  "use server";
+  let dest = "/admin/menu?moved=1";
+  try {
+    const id = String(formData.get("id"));
+    const category = String(formData.get("category") || "").trim() || null;
+    await prisma.menuItem.update({ where: { id }, data: { category } });
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+  } catch (err) {
+    console.error("updateItemCategory error:", err);
+    dest = `/admin/menu?error=${encodeURIComponent("Could not move the item. Try again.")}`;
+  }
+  redirect(dest);
+}
+
+async function renameCategory(formData: FormData) {
+  "use server";
+  let dest = "/admin/menu?renamed=1";
+  try {
+    const from = String(formData.get("from") || "").trim();
+    const to = String(formData.get("to") || "").trim();
+    if (!from || !to) throw new Error("Please enter both the current and new category name.");
+    if (from !== to) {
+      // Reassign items explicitly set to `from`.
+      await prisma.menuItem.updateMany({ where: { category: from }, data: { category: to } });
+      // Items that only land in `from` via the legacy derivation (category null)
+      // need an explicit assignment so the rename sticks.
+      const unset = await prisma.menuItem.findMany({
+        where: { category: null },
+        select: { id: true, name: true, description: true }
+      });
+      const toFix = unset.filter((i) => getItemCategory(i) === from).map((i) => i.id);
+      if (toFix.length) {
+        await prisma.menuItem.updateMany({ where: { id: { in: toFix } }, data: { category: to } });
+      }
+    }
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+  } catch (err) {
+    console.error("renameCategory error:", err);
+    dest = `/admin/menu?error=${encodeURIComponent(
+      err instanceof Error && err.message.startsWith("Please enter")
+        ? err.message
+        : "Could not rename the category. Try again."
+    )}`;
   }
   redirect(dest);
 }
@@ -109,33 +161,16 @@ async function updateItemImageUrl(formData: FormData) {
   revalidatePath("/menu");
 }
 
-const CATEGORIES = [
-  "Signature Burgers & Sandwiches",
-  "Salads with Protein",
-  "Comfort Favorites",
-  "Sides & Snacks",
-];
-
-function getCategory(name: string, description: string | null) {
-  const prefix = description?.split(".")[0]?.trim();
-  if (prefix && CATEGORIES.includes(prefix)) return prefix;
-  if (name.includes("Burger") || name.includes("Sandwich")) return "Signature Burgers & Sandwiches";
-  if (name.includes("Salad")) return "Salads with Protein";
-  if (name.includes("Mac") || name.includes("Quesadilla") || name.includes("Wings") || name.includes("Tender")) return "Comfort Favorites";
-  return "Sides & Snacks";
-}
-
-const CAT_ICONS: Record<string, string> = {
-  "Signature Burgers & Sandwiches": "🍔",
-  "Salads with Protein": "🥗",
-  "Comfort Favorites": "🍗",
-  "Sides & Snacks": "🍟",
-};
-
 export default async function AdminMenuPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string; created?: string; optionAdded?: string }>;
+  searchParams: Promise<{
+    error?: string;
+    created?: string;
+    optionAdded?: string;
+    moved?: string;
+    renamed?: string;
+  }>;
 }) {
   const sp = await searchParams;
   const errorMsg = sp.error ? String(sp.error) : null;
@@ -143,6 +178,10 @@ export default async function AdminMenuPage({
     ? "Menu item added."
     : sp.optionAdded
     ? "Option added."
+    : sp.moved
+    ? "Item moved."
+    : sp.renamed
+    ? "Category renamed."
     : null;
 
   const items = await prisma.menuItem.findMany({
@@ -150,9 +189,11 @@ export default async function AdminMenuPage({
     orderBy: { name: "asc" }
   });
 
-  // Group by category
-  const grouped = CATEGORIES.reduce<Record<string, typeof items>>((acc, cat) => {
-    acc[cat] = items.filter((i) => getCategory(i.name, i.description) === cat);
+  const categories = getCategoryList(items);
+
+  // Group by effective category across the full (defaults + custom) list.
+  const grouped = categories.reduce<Record<string, typeof items>>((acc, cat) => {
+    acc[cat] = items.filter((i) => getItemCategory(i) === cat);
     return acc;
   }, {});
 
@@ -162,6 +203,13 @@ export default async function AdminMenuPage({
   return (
     <div className="space-y-5 pb-10">
       <h1 className="text-[17px] font-semibold text-ink">Menu</h1>
+
+      {/* Shared list of category suggestions for the add / move inputs */}
+      <datalist id="category-options">
+        {categories.map((c) => (
+          <option key={c} value={c} />
+        ))}
+      </datalist>
 
       {errorMsg && (
         <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-2.5 text-[12px] font-medium text-red-700">
@@ -198,8 +246,14 @@ export default async function AdminMenuPage({
             </div>
           </div>
           <div>
-            <label className="text-[11px] text-slate-500 mb-1 block">Description (start with category name)</label>
-            <input name="description" placeholder="Signature Burgers & Sandwiches. Description here..."
+            <label className="text-[11px] text-slate-500 mb-1 block">Category</label>
+            <input name="category" list="category-options"
+              placeholder="Pick one or type a new category"
+              className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
+          </div>
+          <div>
+            <label className="text-[11px] text-slate-500 mb-1 block">Description</label>
+            <input name="description" placeholder="Short description for customers…"
               className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
           </div>
           <label className="flex items-center gap-2 text-[12px] text-slate-600 cursor-pointer">
@@ -209,6 +263,38 @@ export default async function AdminMenuPage({
           <button type="submit"
             className="w-full py-2.5 rounded-lg bg-brand-700 text-white text-[13px] font-semibold">
             Create item
+          </button>
+        </form>
+      </details>
+
+      {/* Rename a category */}
+      <details className="rounded-[14px] border border-slate-100 bg-white overflow-hidden">
+        <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">
+          <span className="text-[13px] font-semibold text-ink">✎ Rename a category</span>
+          <span className="text-[11px] text-slate-400">tap to expand</span>
+        </summary>
+        <form action={renameCategory} className="px-4 pb-4 border-t border-slate-50 pt-3 space-y-2">
+          <p className="text-[11px] text-slate-500 leading-relaxed">
+            Renaming moves every item in that category to the new name.
+          </p>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="text-[11px] text-slate-500 mb-1 block">Current category</label>
+              <select name="from" className="w-full rounded-lg border-slate-200 text-[13px] py-2">
+                {categories.map((c) => (
+                  <option key={c} value={c}>{c}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="text-[11px] text-slate-500 mb-1 block">New name</label>
+              <input name="to" required placeholder="e.g. Wraps & Bowls"
+                className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
+            </div>
+          </div>
+          <button type="submit"
+            className="w-full py-2.5 rounded-lg bg-brand-700 text-white text-[13px] font-semibold">
+            Rename category
           </button>
         </form>
       </details>
@@ -264,13 +350,13 @@ export default async function AdminMenuPage({
       </details>
 
       {/* Menu items by category */}
-      {CATEGORIES.map((cat) => {
+      {categories.map((cat) => {
         const catItems = grouped[cat];
         if (!catItems?.length) return null;
         return (
           <div key={cat}>
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-base">{CAT_ICONS[cat]}</span>
+              <span className="text-base">{categoryIcon(cat)}</span>
               <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400">{cat}</p>
               <span className="text-[10px] text-slate-300">{catItems.length} items</span>
             </div>
@@ -299,6 +385,23 @@ export default async function AdminMenuPage({
                     </summary>
 
                     <div className="border-t border-slate-50 px-4 py-3 space-y-3">
+                      {/* Category / move */}
+                      <form action={updateItemCategory} className="flex items-center gap-2">
+                        <input type="hidden" name="id" value={item.id} />
+                        <label className="text-[11px] text-slate-500 flex-shrink-0">Category</label>
+                        <input
+                          name="category"
+                          list="category-options"
+                          defaultValue={getItemCategory(item)}
+                          placeholder="Pick or type a category"
+                          className="flex-1 rounded-lg border border-slate-200 text-[12px] px-3 py-1.5 min-w-0"
+                        />
+                        <button type="submit"
+                          className="px-3 py-1.5 rounded-lg bg-brand-700 text-white text-[11px] font-semibold flex-shrink-0 hover:bg-brand-800 transition">
+                          Move
+                        </button>
+                      </form>
+
                       {/* Photo URL */}
                       <form action={updateItemImageUrl} className="space-y-1.5">
                         <input type="hidden" name="id" value={item.id} />
@@ -371,7 +474,7 @@ export default async function AdminMenuPage({
                           name="description"
                           rows={2}
                           defaultValue={item.description ?? ""}
-                          placeholder="Signature Burgers & Sandwiches. Description here…"
+                          placeholder="Short description for customers…"
                           className="flex-1 rounded-lg border border-slate-200 text-[12px] px-3 py-1.5 resize-none"
                         />
                         <button type="submit"

@@ -46,6 +46,7 @@ export const menuItemSchema = z.object({
   name: z.string().min(2),
   slug: z.string().min(2),
   description: z.string().optional().default(""),
+  category: z.preprocess((v) => (typeof v === "string" && v.trim() ? v.trim() : null), z.string().nullable().optional()),
   basePriceCents: z.coerce.number().int().min(0),
   isActive: z.coerce.boolean().default(true)
 });

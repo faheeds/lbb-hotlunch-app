@@ -5,13 +5,14 @@ import { formatInTimeZone } from "date-fns-tz";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { getGradesForSchoolName } from "@/lib/grades";
 import { cn } from "@/lib/utils";
+import { getItemCategory, getCategoryList, categoryIcon, cleanDescription } from "@/lib/categories";
 
 type DeliveryDate = {
   id: string; schoolId: string; deliveryDate: string; cutoffAt: string; orderingOpen: boolean;
   school: { id: string; name: string; timezone: string };
 };
 type MenuOption = { id: string; name: string; optionType: "ADD_ON" | "REMOVAL"; priceDeltaCents: number };
-type MenuItem = { id: string; slug: string; name: string; description: string | null; imageUrl: string | null; basePriceCents: number; options: MenuOption[] };
+type MenuItem = { id: string; slug: string; name: string; description: string | null; imageUrl: string | null; basePriceCents: number; category: string | null; options: MenuOption[] };
 type CartItem = { id: string; menuItemId: string; itemName: string; choice?: string; additions: string[]; removals: string[]; lineTotalCents: number };
 
 type OrderFormProps = {
@@ -29,30 +30,13 @@ function fmt(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
-const CATEGORY_ORDER = ["Signature Burgers & Sandwiches", "Salads with Protein", "Comfort Favorites", "Sides & Snacks"];
-
 function getCategory(item: MenuItem) {
-  const prefix = item.description?.split(".")[0]?.trim();
-  if (prefix && CATEGORY_ORDER.includes(prefix)) return prefix;
-  if (item.name.includes("Burger") || item.name.includes("Sandwich")) return "Signature Burgers & Sandwiches";
-  if (item.name.includes("Salad")) return "Salads with Protein";
-  if (item.name.includes("Mac") || item.name.includes("Quesadilla") || item.name.includes("Wings") || item.name.includes("Tender")) return "Comfort Favorites";
-  return "Sides & Snacks";
+  return getItemCategory(item);
 }
 
 function getDesc(item: MenuItem) {
-  const parts = item.description?.split(". ");
-  if (!parts?.length) return "";
-  if (CATEGORY_ORDER.includes(parts[0].trim())) return parts.slice(1).join(". ").trim();
-  return item.description ?? "";
+  return cleanDescription(item);
 }
-
-const CATEGORY_ICONS: Record<string, string> = {
-  "Signature Burgers & Sandwiches": "🍔",
-  "Salads with Protein": "🥗",
-  "Comfort Favorites": "🍗",
-  "Sides & Snacks": "🍟",
-};
 
 // Steps: 1=school/date, 2=student, 3=menu, 4=review
 type Step = 1 | 2 | 3 | 4;
@@ -129,7 +113,7 @@ export function OrderForm({
       acc[cat].push(item);
       return acc;
     }, {});
-    return CATEGORY_ORDER.reduce<Record<string, MenuItem[]>>((ordered, cat) => {
+    return getCategoryList(menuItems).reduce<Record<string, MenuItem[]>>((ordered, cat) => {
       if (groups[cat]?.length) ordered[cat] = groups[cat];
       return ordered;
     }, {});
@@ -375,7 +359,7 @@ export function OrderForm({
           {Object.entries(groupedMenuItems).map(([category, items]) => (
             <div key={category} className="mb-4">
               <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400 mb-2 flex items-center gap-1.5">
-                <span>{CATEGORY_ICONS[category]}</span>{category}
+                <span>{categoryIcon(category)}</span>{category}
               </p>
               <div className="space-y-2">
                 {items.map((item) => {
@@ -400,7 +384,7 @@ export function OrderForm({
                         />
                       ) : (
                         <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0">
-                          {CATEGORY_ICONS[category] || "🍽"}
+                          {categoryIcon(category)}
                         </div>
                       )}
                       <div className="flex-1 min-w-0">

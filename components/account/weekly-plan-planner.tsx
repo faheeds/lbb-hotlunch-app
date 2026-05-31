@@ -6,6 +6,7 @@ import { formatInTimeZone } from "date-fns-tz";
 import { getRequiredChoicesForMenuItem } from "@/lib/menu-config";
 import { getWeekdayNumber } from "@/lib/weekly-week";
 import { cn } from "@/lib/utils";
+import { getItemCategory, getCategoryList, categoryIcon, cleanDescription } from "@/lib/categories";
 
 type ChildSummary = {
   id: string;
@@ -28,6 +29,7 @@ type MenuItem = {
   slug: string;
   name: string;
   description: string | null;
+  category: string | null;
   basePriceCents: number;
   options: MenuOption[];
 };
@@ -68,44 +70,16 @@ const WEEKDAY_LABELS: Record<number, { short: string; long: string }> = {
   // Friday removed — school provides lunch Mon–Thu only
 };
 
-const CATEGORY_ORDER = [
-  "Signature Burgers & Sandwiches",
-  "Salads with Protein",
-  "Comfort Favorites",
-  "Sides & Snacks"
-];
-
-const CATEGORY_ICONS: Record<string, string> = {
-  "Signature Burgers & Sandwiches": "🍔",
-  "Salads with Protein": "🥗",
-  "Comfort Favorites": "🍗",
-  "Sides & Snacks": "🍟"
-};
-
 function fmt(cents: number) {
   return new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
 }
 
 function getCategory(item: MenuItem) {
-  const prefix = item.description?.split(".")[0]?.trim();
-  if (prefix && CATEGORY_ORDER.includes(prefix)) return prefix;
-  if (item.name.includes("Burger") || item.name.includes("Sandwich")) return "Signature Burgers & Sandwiches";
-  if (item.name.includes("Salad")) return "Salads with Protein";
-  if (
-    item.name.includes("Mac") ||
-    item.name.includes("Quesadilla") ||
-    item.name.includes("Wings") ||
-    item.name.includes("Tender")
-  )
-    return "Comfort Favorites";
-  return "Sides & Snacks";
+  return getItemCategory(item);
 }
 
 function getDesc(item: MenuItem) {
-  const parts = item.description?.split(". ");
-  if (!parts?.length) return "";
-  if (CATEGORY_ORDER.includes(parts[0].trim())) return parts.slice(1).join(". ").trim();
-  return item.description ?? "";
+  return cleanDescription(item);
 }
 
 export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: PlannerProps) {
@@ -171,7 +145,7 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
       acc[cat].push(item);
       return acc;
     }, {});
-    return CATEGORY_ORDER.reduce<Record<string, MenuItem[]>>((ordered, cat) => {
+    return getCategoryList(dayMenuItems).reduce<Record<string, MenuItem[]>>((ordered, cat) => {
       if (groups[cat]?.length) ordered[cat] = groups[cat];
       return ordered;
     }, {});
@@ -449,7 +423,7 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
                       {Object.entries(groupedMenuItems).map(([category, items]) => (
                         <div key={category}>
                           <p className="text-[9px] font-semibold uppercase tracking-[0.14em] text-slate-400 mb-2 flex items-center gap-1.5">
-                            <span>{CATEGORY_ICONS[category]}</span>
+                            <span>{categoryIcon(category)}</span>
                             {category}
                           </p>
                           <div className="space-y-2">
@@ -474,7 +448,7 @@ export function WeeklyPlanPlanner({ children, deliveryDates, existingPlans }: Pl
                                   )}
                                 >
                                   <div className="w-9 h-9 rounded-xl bg-slate-100 flex items-center justify-center text-lg flex-shrink-0">
-                                    {CATEGORY_ICONS[category] || "🍽"}
+                                    {categoryIcon(category)}
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-2">

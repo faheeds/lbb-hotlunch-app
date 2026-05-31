@@ -244,6 +244,7 @@ export default async function ParentAccountPage() {
                     slug: entry.menuItem.slug,
                     name: entry.menuItem.name,
                     description: entry.menuItem.description,
+                    category: entry.menuItem.category ?? null,
                     basePriceCents: entry.menuItem.basePriceCents,
                     options: entry.menuItem.options.map((o) => ({
                       id: o.id,

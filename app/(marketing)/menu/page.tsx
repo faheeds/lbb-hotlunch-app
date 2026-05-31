@@ -3,51 +3,15 @@ import { prisma } from "@/lib/db";
 import { SiteHeader } from "@/components/site-header";
 import { AppNav } from "@/components/app-nav";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
+import {
+  getItemCategory,
+  getCategoryList,
+  categoryMeta,
+  categoryAnchorId,
+  cleanDescription,
+} from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
-
-// ── Category helpers (mirrors admin/menu logic) ─────────────────────────────
-
-const CATEGORIES = [
-  "Signature Burgers & Sandwiches",
-  "Salads with Protein",
-  "Comfort Favorites",
-  "Sides & Snacks",
-] as const;
-
-const CAT_META: Record<string, { icon: string; gradient: string; label: string }> = {
-  "Signature Burgers & Sandwiches": {
-    icon: "🍔",
-    gradient: "linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%)",
-    label: "Burgers & Sandwiches",
-  },
-  "Salads with Protein": {
-    icon: "🥗",
-    gradient: "linear-gradient(135deg, #86efac 0%, #22c55e 100%)",
-    label: "Salads",
-  },
-  "Comfort Favorites": {
-    icon: "🍗",
-    gradient: "linear-gradient(135deg, #fca5a5 0%, #ef4444 100%)",
-    label: "Comfort Favorites",
-  },
-  "Sides & Snacks": {
-    icon: "🍟",
-    gradient: "linear-gradient(135deg, #fed7aa 0%, #f97316 100%)",
-    label: "Sides & Snacks",
-  },
-};
-
-function getCategory(name: string, description: string | null) {
-  const prefix = description?.split(".")[0]?.trim();
-  if (prefix && CATEGORIES.includes(prefix as typeof CATEGORIES[number])) return prefix;
-  if (name.includes("Burger") || name.includes("Sandwich")) return "Signature Burgers & Sandwiches";
-  if (name.includes("Salad")) return "Salads with Protein";
-  if (name.includes("Mac") || name.includes("Quesadilla") || name.includes("Wings") || name.includes("Tender")) return "Comfort Favorites";
-  return "Sides & Snacks";
-}
-
-// ── Page ────────────────────────────────────────────────────────────────────
 
 export default async function MenuPage() {
   const items = await prisma.menuItem.findMany({
@@ -58,9 +22,11 @@ export default async function MenuPage() {
     orderBy: { name: "asc" },
   });
 
-  // Group by category
-  const grouped = CATEGORIES.reduce<Record<string, typeof items>>((acc, cat) => {
-    acc[cat] = items.filter((i) => getCategory(i.name, i.description) === cat);
+  const categories = getCategoryList(items);
+
+  // Group by effective category across the full (defaults + custom) list.
+  const grouped = categories.reduce<Record<string, typeof items>>((acc, cat) => {
+    acc[cat] = items.filter((i) => getItemCategory(i) === cat);
     return acc;
   }, {});
 
@@ -120,12 +86,12 @@ export default async function MenuPage() {
           overflowX: "auto", background: "#fafafa",
           borderBottom: "1px solid #f1f5f9",
         }}>
-          {CATEGORIES.map((cat) => {
-            const meta = CAT_META[cat];
+          {categories.map((cat) => {
+            const meta = categoryMeta(cat);
             const count = grouped[cat]?.length ?? 0;
             if (!count) return null;
             return (
-              <a key={cat} href={`#cat-${cat.replace(/[^a-z]/gi, "-").toLowerCase()}`} style={{
+              <a key={cat} href={`#${categoryAnchorId(cat)}`} style={{
                 display: "inline-flex", alignItems: "center", gap: 6,
                 padding: "7px 13px", borderRadius: 20, flexShrink: 0,
                 background: "white", border: "1.5px solid #e2e8f0",
@@ -147,14 +113,14 @@ export default async function MenuPage() {
 
         {/* ── Item grid by category ───────────────────────────────────────── */}
         <div style={{ padding: "4px 0 100px", background: "#f8fafc" }}>
-          {CATEGORIES.map((cat) => {
+          {categories.map((cat) => {
             const catItems = grouped[cat];
             if (!catItems?.length) return null;
-            const meta = CAT_META[cat];
+            const meta = categoryMeta(cat);
             return (
               <section
                 key={cat}
-                id={`cat-${cat.replace(/[^a-z]/gi, "-").toLowerCase()}`}
+                id={categoryAnchorId(cat)}
                 style={{ padding: "20px 16px 8px" }}
               >
                 {/* Category header */}
@@ -190,7 +156,7 @@ export default async function MenuPage() {
                         id: item.id,
                         slug: item.slug,
                         name: item.name,
-                        description: item.description,
+                        description: cleanDescription(item),
                         imageUrl: item.imageUrl ?? null,
                         basePriceCents: item.basePriceCents,
                         options: item.options.map((o) => ({
