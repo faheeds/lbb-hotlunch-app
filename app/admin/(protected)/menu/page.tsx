@@ -1,35 +1,77 @@
 import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { menuItemSchema, menuOptionSchema } from "@/lib/validation/order";
 import { slugify } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
+// Parse a human-entered dollar amount ("12.99", "$12.99", "12") into integer
+// cents. Returns null when the value is missing or not a valid, non-negative
+// number so callers can show a friendly error instead of crashing.
+function dollarsToCents(value: FormDataEntryValue | null): number | null {
+  const cleaned = String(value ?? "").replace(/[$,\s]/g, "").trim();
+  if (!cleaned) return null;
+  const dollars = Number(cleaned);
+  if (!Number.isFinite(dollars) || dollars < 0) return null;
+  return Math.round(dollars * 100);
+}
+
+function menuItemErrorMessage(err: unknown): string {
+  if (err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002") {
+    return "An item with that name already exists. Try a different name.";
+  }
+  if (err instanceof Error && err.message.startsWith("Please enter")) {
+    return err.message;
+  }
+  return "Could not add the item. Check the name and price, then try again.";
+}
+
 async function createMenuItem(formData: FormData) {
   "use server";
-  const parsed = menuItemSchema.parse({
-    name: formData.get("name"),
-    slug: slugify(String(formData.get("name") || "")),
-    description: formData.get("description"),
-    basePriceCents: formData.get("basePriceCents"),
-    isActive: formData.get("isActive") === "on"
-  });
-  await prisma.menuItem.create({ data: parsed });
-  revalidatePath("/admin/menu");
+  let dest = "/admin/menu?created=1";
+  try {
+    const basePriceCents = dollarsToCents(formData.get("price"));
+    if (basePriceCents === null) {
+      throw new Error("Please enter a valid price, e.g. 12.99");
+    }
+    const parsed = menuItemSchema.parse({
+      name: formData.get("name"),
+      slug: slugify(String(formData.get("name") || "")),
+      description: formData.get("description"),
+      basePriceCents,
+      isActive: formData.get("isActive") === "on"
+    });
+    await prisma.menuItem.create({ data: parsed });
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+  } catch (err) {
+    console.error("createMenuItem error:", err);
+    dest = `/admin/menu?error=${encodeURIComponent(menuItemErrorMessage(err))}`;
+  }
+  redirect(dest);
 }
 
 async function createMenuOption(formData: FormData) {
   "use server";
-  const parsed = menuOptionSchema.parse({
-    menuItemId: formData.get("menuItemId"),
-    name: formData.get("name"),
-    optionType: formData.get("optionType"),
-    priceDeltaCents: formData.get("priceDeltaCents"),
-    isDefault: false,
-    sortOrder: formData.get("sortOrder")
-  });
-  await prisma.menuOption.create({ data: parsed });
-  revalidatePath("/admin/menu");
+  let dest = "/admin/menu?optionAdded=1";
+  try {
+    const parsed = menuOptionSchema.parse({
+      menuItemId: formData.get("menuItemId"),
+      name: formData.get("name"),
+      optionType: formData.get("optionType"),
+      priceDeltaCents: dollarsToCents(formData.get("priceDelta")) ?? 0,
+      isDefault: false,
+      sortOrder: formData.get("sortOrder")
+    });
+    await prisma.menuOption.create({ data: parsed });
+    revalidatePath("/admin/menu");
+  } catch (err) {
+    console.error("createMenuOption error:", err);
+    dest = `/admin/menu?error=${encodeURIComponent("Could not add the option. Check the fields and try again.")}`;
+  }
+  redirect(dest);
 }
 
 async function toggleItemActive(formData: FormData) {
@@ -90,7 +132,19 @@ const CAT_ICONS: Record<string, string> = {
   "Sides & Snacks": "🍟",
 };
 
-export default async function AdminMenuPage() {
+export default async function AdminMenuPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ error?: string; created?: string; optionAdded?: string }>;
+}) {
+  const sp = await searchParams;
+  const errorMsg = sp.error ? String(sp.error) : null;
+  const successMsg = sp.created
+    ? "Menu item added."
+    : sp.optionAdded
+    ? "Option added."
+    : null;
+
   const items = await prisma.menuItem.findMany({
     include: { options: { orderBy: [{ optionType: "asc" }, { sortOrder: "asc" }] } },
     orderBy: { name: "asc" }
@@ -109,6 +163,17 @@ export default async function AdminMenuPage() {
     <div className="space-y-5 pb-10">
       <h1 className="text-[17px] font-semibold text-ink">Menu</h1>
 
+      {errorMsg && (
+        <div className="rounded-[12px] border border-red-200 bg-red-50 px-4 py-2.5 text-[12px] font-medium text-red-700">
+          {errorMsg}
+        </div>
+      )}
+      {successMsg && (
+        <div className="rounded-[12px] border border-brand-200 bg-brand-50 px-4 py-2.5 text-[12px] font-medium text-brand-800">
+          {successMsg}
+        </div>
+      )}
+
       {/* Add item */}
       <details className="rounded-[14px] border border-slate-100 bg-white overflow-hidden">
         <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">
@@ -123,9 +188,13 @@ export default async function AdminMenuPage() {
                 className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
             </div>
             <div>
-              <label className="text-[11px] text-slate-500 mb-1 block">Base price (cents)</label>
-              <input name="basePriceCents" placeholder="e.g. 1299 = $12.99" required
-                className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
+              <label className="text-[11px] text-slate-500 mb-1 block">Price ($)</label>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[12px] text-slate-400">$</span>
+                <input name="price" type="number" step="0.01" min="0" inputMode="decimal"
+                  placeholder="e.g. 12.99" required
+                  className="w-full rounded-lg border-slate-200 text-[13px] pl-6 pr-3 py-2" />
+              </div>
             </div>
           </div>
           <div>
@@ -173,9 +242,13 @@ export default async function AdminMenuPage() {
               </select>
             </div>
             <div>
-              <label className="text-[11px] text-slate-500 mb-1 block">Price delta (cents, 0 = free)</label>
-              <input name="priceDeltaCents" defaultValue="0" required
-                className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
+              <label className="text-[11px] text-slate-500 mb-1 block">Extra charge ($, 0 = free)</label>
+              <div className="relative">
+                <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[12px] text-slate-400">$</span>
+                <input name="priceDelta" type="number" step="0.01" min="0" inputMode="decimal"
+                  defaultValue="0" required
+                  className="w-full rounded-lg border-slate-200 text-[13px] pl-6 pr-3 py-2" />
+              </div>
             </div>
             <div>
               <label className="text-[11px] text-slate-500 mb-1 block">Sort order</label>
