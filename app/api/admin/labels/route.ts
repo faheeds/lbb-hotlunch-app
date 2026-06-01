@@ -14,6 +14,8 @@ export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const deliveryDate = searchParams.get("deliveryDate") ?? undefined;
   const schoolIds = searchParams.getAll("schoolIds").filter(Boolean);
+  const dateFrom = searchParams.get("dateFrom") ?? undefined;
+  const dateTo = searchParams.get("dateTo") ?? undefined;
   const format = searchParams.get("format") ?? "pdf";
   const deliveryDateIds = await resolveDeliveryDateIds(deliveryDate);
 
@@ -21,6 +23,15 @@ export async function GET(request: Request) {
     where: {
       deliveryDateId: deliveryDateIds ? { in: deliveryDateIds } : undefined,
       schoolId: schoolIds.length ? { in: schoolIds } : undefined,
+      deliveryDate:
+        dateFrom || dateTo
+          ? {
+              deliveryDate: {
+                gte: dateFrom ? new Date(`${dateFrom}T00:00:00`) : undefined,
+                lte: dateTo ? new Date(`${dateTo}T23:59:59.999`) : undefined
+              }
+            }
+          : undefined,
       status: OrderStatus.PAID,
       archivedAt: null
     },

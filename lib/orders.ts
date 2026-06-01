@@ -261,6 +261,24 @@ export async function markOrderPaidByCheckoutSession(
   });
 }
 
+// Calendar-date window covering last week, the current week, and next week
+// (Monday-start, in the app timezone). Returns yyyy-MM-dd bounds for filtering
+// the delivery-date dropdown; anything older is reached via the date-range fields.
+export function recentDeliveryWindow(now: Date = new Date()): { start: string; end: string } {
+  const todayStr = formatInTimeZone(now, DEFAULT_TIMEZONE, "yyyy-MM-dd");
+  const today = new Date(`${todayStr}T00:00:00Z`);
+  const dow = today.getUTCDay(); // 0=Sun..6=Sat
+  const mondayOffset = dow === 0 ? 6 : dow - 1;
+  const monday = new Date(today);
+  monday.setUTCDate(today.getUTCDate() - mondayOffset);
+  const start = new Date(monday);
+  start.setUTCDate(monday.getUTCDate() - 7); // last week's Monday
+  const end = new Date(monday);
+  end.setUTCDate(monday.getUTCDate() + 13); // next week's Sunday
+  const f = (d: Date) => d.toISOString().slice(0, 10);
+  return { start: f(start), end: f(end) };
+}
+
 // Resolve every DeliveryDate row (across allowed schools) that falls on the
 // given calendar day (yyyy-MM-dd, in each school's timezone). Returns an empty
 // array when the date matches nothing, so callers filter to zero orders rather
@@ -279,6 +297,8 @@ export async function resolveDeliveryDateIds(calendarDate?: string): Promise<str
 export async function listOrders(filters: {
   deliveryDateId?: string;
   deliveryDateIds?: string[];
+  dateFrom?: string;
+  dateTo?: string;
   schoolId?: string;
   schoolIds?: string[];
   status?: string;
@@ -288,6 +308,14 @@ export async function listOrders(filters: {
 
   if (filters.deliveryDateIds) where.deliveryDateId = { in: filters.deliveryDateIds };
   else if (filters.deliveryDateId) where.deliveryDateId = filters.deliveryDateId;
+  if (filters.dateFrom || filters.dateTo) {
+    where.deliveryDate = {
+      deliveryDate: {
+        gte: filters.dateFrom ? new Date(`${filters.dateFrom}T00:00:00`) : undefined,
+        lte: filters.dateTo ? new Date(`${filters.dateTo}T23:59:59.999`) : undefined
+      }
+    };
+  }
   if (filters.schoolIds?.length) {
     where.schoolId = { in: filters.schoolIds };
   } else if (filters.schoolId) {

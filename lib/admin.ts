@@ -49,7 +49,7 @@ export async function setOrderArchived(orderId: string, archived: boolean) {
 
 export async function getAdminReports(filters: {
   schoolIds?: string[];
-  deliveryDateId?: string;
+  deliveryDateIds?: string[];
   dateFrom?: string;
   dateTo?: string;
 }) {
@@ -65,7 +65,7 @@ export async function getAdminReports(filters: {
     where: {
       status: OrderStatus.PAID,
       archivedAt: null,
-      deliveryDateId: filters.deliveryDateId || undefined,
+      deliveryDateId: filters.deliveryDateIds ? { in: filters.deliveryDateIds } : undefined,
       schoolId: filters.schoolIds?.length ? { in: filters.schoolIds } : undefined,
       school: { slug: { in: [...ALLOWED_SCHOOL_SLUGS] } },
       deliveryDate: deliveryDateFilter ? { deliveryDate: deliveryDateFilter } : undefined

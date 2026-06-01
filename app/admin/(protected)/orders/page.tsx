@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { prisma } from "@/lib/db";
-import { listOrders } from "@/lib/orders";
+import { listOrders, recentDeliveryWindow } from "@/lib/orders";
 import { ALLOWED_SCHOOL_SLUGS } from "@/lib/school-config";
 import { OrdersList } from "@/components/admin/orders-list";
 import { formatInTimeZone } from "date-fns-tz";
@@ -15,11 +15,21 @@ function normalizeMultiValue(value: string | string[] | undefined) {
 export default async function AdminOrdersPage({
   searchParams
 }: {
-  searchParams: Promise<{ deliveryDate?: string; schoolIds?: string | string[]; status?: string; archived?: string }>;
+  searchParams: Promise<{
+    deliveryDate?: string;
+    schoolIds?: string | string[];
+    status?: string;
+    archived?: string;
+    dateFrom?: string;
+    dateTo?: string;
+  }>;
 }) {
   const params = await searchParams;
   const selectedSchoolIds = normalizeMultiValue(params.schoolIds);
   const selectedDate = params.deliveryDate ?? "";
+  const dateFrom = params.dateFrom ?? "";
+  const dateTo = params.dateTo ?? "";
+  const usingRange = Boolean(dateFrom || dateTo);
 
   const [schools, allDeliveryDates] = await Promise.all([
     prisma.school.findMany({ where: { isActive: true, slug: { in: [...ALLOWED_SCHOOL_SLUGS] } }, orderBy: { name: "asc" } }),
@@ -30,19 +40,7 @@ export default async function AdminOrdersPage({
     })
   ]);
 
-  // Distinct calendar dates across all schools (a date is shared by both
-  // schools, so we key the filter on the calendar day rather than a single
-  // per-school delivery-date row). Insertion order is chronological.
-  const dateOptions: { value: string; label: string }[] = [];
-  const seenDates = new Set<string>();
-  for (const d of allDeliveryDates) {
-    const value = formatInTimeZone(d.deliveryDate, d.school.timezone, "yyyy-MM-dd");
-    if (seenDates.has(value)) continue;
-    seenDates.add(value);
-    dateOptions.push({ value, label: formatInTimeZone(d.deliveryDate, d.school.timezone, "EEE MMM d") });
-  }
-
-  // All delivery-date rows (both schools) that fall on the selected calendar day.
+  // All delivery-date rows (both schools) on the selected calendar day.
   const matchingDateIds = selectedDate
     ? allDeliveryDates
         .filter((d) => formatInTimeZone(d.deliveryDate, d.school.timezone, "yyyy-MM-dd") === selectedDate)
@@ -50,15 +48,38 @@ export default async function AdminOrdersPage({
     : undefined;
 
   const orders = await listOrders({
-    deliveryDateIds: matchingDateIds,
+    deliveryDateIds: usingRange ? undefined : matchingDateIds,
+    dateFrom: usingRange ? dateFrom || undefined : undefined,
+    dateTo: usingRange ? dateTo || undefined : undefined,
     schoolIds: selectedSchoolIds,
     status: params.status,
     archived: params.archived
   });
 
+  // Delivery-date dropdown: only last week, this week, and next week, newest first.
+  const { start: winStart, end: winEnd } = recentDeliveryWindow();
+  const seen = new Set<string>();
+  const dateOptions: { value: string; label: string }[] = [];
+  for (const d of allDeliveryDates) {
+    const value = formatInTimeZone(d.deliveryDate, d.school.timezone, "yyyy-MM-dd");
+    if (seen.has(value)) continue;
+    seen.add(value);
+    if (value < winStart || value > winEnd) continue;
+    dateOptions.push({ value, label: formatInTimeZone(d.deliveryDate, d.school.timezone, "EEE MMM d") });
+  }
+  dateOptions.sort((a, b) => b.value.localeCompare(a.value));
+  if (selectedDate && !usingRange && !dateOptions.some((o) => o.value === selectedDate)) {
+    dateOptions.unshift({ value: selectedDate, label: selectedDate });
+  }
+
   // Keep CSV / labels / print in sync with the on-screen filter.
   const exportQs = new URLSearchParams();
-  if (selectedDate) exportQs.set("deliveryDate", selectedDate);
+  if (usingRange) {
+    if (dateFrom) exportQs.set("dateFrom", dateFrom);
+    if (dateTo) exportQs.set("dateTo", dateTo);
+  } else if (selectedDate) {
+    exportQs.set("deliveryDate", selectedDate);
+  }
   for (const sid of selectedSchoolIds) exportQs.append("schoolIds", sid);
   const qs = exportQs.toString() ? `?${exportQs.toString()}` : "";
 
@@ -77,19 +98,19 @@ export default async function AdminOrdersPage({
         </div>
       </div>
 
-      <form className="rounded-[14px] border border-slate-100 bg-white p-3">
-        <div className="grid grid-cols-2 gap-2 mb-2">
+      <form className="rounded-[14px] border border-slate-100 bg-white p-3 space-y-2">
+        <div className="grid grid-cols-2 gap-2">
           <div>
-            <label className="text-[10px] text-slate-400 mb-1 block">Schools (leave empty for all)</label>
+            <label className="text-[10px] text-slate-400 uppercase tracking-wide mb-1 block">Schools (leave empty for all)</label>
             <select name="schoolIds" multiple defaultValue={selectedSchoolIds}
               className="w-full rounded-lg border-slate-200 text-[12px] py-1.5 min-h-[56px]">
               {schools.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
           <div className="flex flex-col gap-2">
-            <select name="deliveryDate" defaultValue={selectedDate}
+            <select name="deliveryDate" defaultValue={usingRange ? "" : selectedDate}
               className="rounded-lg border-slate-200 text-[12px] py-1.5">
-              <option value="">All dates</option>
+              <option value="">All recent dates</option>
               {dateOptions.map((d) => (
                 <option key={d.value} value={d.value}>{d.label}</option>
               ))}
@@ -108,6 +129,15 @@ export default async function AdminOrdersPage({
               <option value="include">Active + archived</option>
               <option value="only">Archived only</option>
             </select>
+          </div>
+        </div>
+        <div>
+          <label className="text-[10px] text-slate-400 uppercase tracking-wide mb-1 block">Or date range (for older periods)</label>
+          <div className="grid grid-cols-2 gap-1.5">
+            <input type="date" name="dateFrom" defaultValue={dateFrom}
+              className="rounded-lg border-slate-200 text-[11px] px-2 py-1.5" />
+            <input type="date" name="dateTo" defaultValue={dateTo}
+              className="rounded-lg border-slate-200 text-[11px] px-2 py-1.5" />
           </div>
         </div>
         <button type="submit"

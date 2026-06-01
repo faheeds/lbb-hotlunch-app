@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export default async function LabelsPrintPage({
   searchParams
 }: {
-  searchParams: Promise<{ deliveryDate?: string; schoolIds?: string | string[] }>;
+  searchParams: Promise<{ deliveryDate?: string; schoolIds?: string | string[]; dateFrom?: string; dateTo?: string }>;
 }) {
   const params = await searchParams;
   const schoolIds = Array.isArray(params.schoolIds)
@@ -17,10 +17,21 @@ export default async function LabelsPrintPage({
     ? [params.schoolIds]
     : [];
   const deliveryDateIds = await resolveDeliveryDateIds(params.deliveryDate);
+  const dateFrom = params.dateFrom || undefined;
+  const dateTo = params.dateTo || undefined;
   const orders = await prisma.order.findMany({
     where: {
       deliveryDateId: deliveryDateIds ? { in: deliveryDateIds } : undefined,
       schoolId: schoolIds.length ? { in: schoolIds } : undefined,
+      deliveryDate:
+        dateFrom || dateTo
+          ? {
+              deliveryDate: {
+                gte: dateFrom ? new Date(`${dateFrom}T00:00:00`) : undefined,
+                lte: dateTo ? new Date(`${dateTo}T23:59:59.999`) : undefined
+              }
+            }
+          : undefined,
       status: OrderStatus.PAID,
       archivedAt: null
     },
