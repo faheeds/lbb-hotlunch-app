@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { menuItemSchema, menuOptionSchema } from "@/lib/validation/order";
 import { slugify } from "@/lib/utils";
-import { getItemCategory, getCategoryList, categoryIcon } from "@/lib/categories";
+import { getItemCategory, orderedCategoryList, categoryIcon } from "@/lib/categories";
 
 export const dynamic = "force-dynamic";
 
@@ -92,6 +92,29 @@ async function updateItemCategory(formData: FormData) {
   redirect(dest);
 }
 
+async function createCategory(formData: FormData) {
+  "use server";
+  let dest = "/admin/menu?catCreated=1";
+  try {
+    const name = String(formData.get("name") || "").trim();
+    if (!name) throw new Error("Please enter a category name.");
+    const max = await prisma.category.aggregate({ _max: { sortOrder: true } });
+    await prisma.category.create({ data: { name, sortOrder: (max._max.sortOrder ?? -1) + 1 } });
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+  } catch (err) {
+    console.error("createCategory error:", err);
+    const msg =
+      err instanceof Prisma.PrismaClientKnownRequestError && err.code === "P2002"
+        ? "That category already exists."
+        : err instanceof Error && err.message.startsWith("Please enter")
+        ? err.message
+        : "Could not create the category. Try again.";
+    dest = `/admin/menu?error=${encodeURIComponent(msg)}`;
+  }
+  redirect(dest);
+}
+
 async function renameCategory(formData: FormData) {
   "use server";
   let dest = "/admin/menu?renamed=1";
@@ -112,6 +135,16 @@ async function renameCategory(formData: FormData) {
       if (toFix.length) {
         await prisma.menuItem.updateMany({ where: { id: { in: toFix } }, data: { category: to } });
       }
+      // Update the managed Category row, merging if the target name already exists.
+      const row = await prisma.category.findUnique({ where: { name: from } });
+      if (row) {
+        const target = await prisma.category.findUnique({ where: { name: to } });
+        if (target) {
+          await prisma.category.delete({ where: { id: row.id } });
+        } else {
+          await prisma.category.update({ where: { id: row.id }, data: { name: to } });
+        }
+      }
     }
     revalidatePath("/admin/menu");
     revalidatePath("/menu");
@@ -124,6 +157,56 @@ async function renameCategory(formData: FormData) {
     )}`;
   }
   redirect(dest);
+}
+
+async function deleteCategory(formData: FormData) {
+  "use server";
+  let dest = "/admin/menu?catDeleted=1";
+  try {
+    const id = String(formData.get("id"));
+    const cat = await prisma.category.findUnique({ where: { id } });
+    if (cat) {
+      const count = await prisma.menuItem.count({ where: { category: cat.name } });
+      if (count > 0) {
+        throw new Error(`Move its ${count} item${count === 1 ? "" : "s"} to another category first.`);
+      }
+      await prisma.category.delete({ where: { id } });
+    }
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+  } catch (err) {
+    console.error("deleteCategory error:", err);
+    dest = `/admin/menu?error=${encodeURIComponent(
+      err instanceof Error && err.message.startsWith("Move its")
+        ? err.message
+        : "Could not delete the category. Try again."
+    )}`;
+  }
+  redirect(dest);
+}
+
+async function reorderCategory(formData: FormData) {
+  "use server";
+  try {
+    const id = String(formData.get("id"));
+    const dir = String(formData.get("dir"));
+    const all = await prisma.category.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] });
+    const idx = all.findIndex((c) => c.id === id);
+    const swapIdx = dir === "up" ? idx - 1 : idx + 1;
+    if (idx !== -1 && swapIdx >= 0 && swapIdx < all.length) {
+      const a = all[idx];
+      const b = all[swapIdx];
+      await prisma.$transaction([
+        prisma.category.update({ where: { id: a.id }, data: { sortOrder: b.sortOrder } }),
+        prisma.category.update({ where: { id: b.id }, data: { sortOrder: a.sortOrder } })
+      ]);
+    }
+    revalidatePath("/admin/menu");
+    revalidatePath("/menu");
+  } catch (err) {
+    console.error("reorderCategory error:", err);
+  }
+  redirect("/admin/menu");
 }
 
 async function toggleItemActive(formData: FormData) {
@@ -170,6 +253,8 @@ export default async function AdminMenuPage({
     optionAdded?: string;
     moved?: string;
     renamed?: string;
+    catCreated?: string;
+    catDeleted?: string;
   }>;
 }) {
   const sp = await searchParams;
@@ -182,20 +267,29 @@ export default async function AdminMenuPage({
     ? "Item moved."
     : sp.renamed
     ? "Category renamed."
+    : sp.catCreated
+    ? "Category created."
+    : sp.catDeleted
+    ? "Category deleted."
     : null;
 
-  const items = await prisma.menuItem.findMany({
-    include: { options: { orderBy: [{ optionType: "asc" }, { sortOrder: "asc" }] } },
-    orderBy: { name: "asc" }
-  });
+  const [items, managed] = await Promise.all([
+    prisma.menuItem.findMany({
+      include: { options: { orderBy: [{ optionType: "asc" }, { sortOrder: "asc" }] } },
+      orderBy: { name: "asc" }
+    }),
+    prisma.category.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] })
+  ]);
 
-  const categories = getCategoryList(items);
+  const managedNames = managed.map((c) => c.name);
+  const categories = orderedCategoryList(managedNames, items);
 
-  // Group by effective category across the full (defaults + custom) list.
+  // Group by effective category across the full (managed + custom) list.
   const grouped = categories.reduce<Record<string, typeof items>>((acc, cat) => {
     acc[cat] = items.filter((i) => getItemCategory(i) === cat);
     return acc;
   }, {});
+  const countFor = (name: string) => grouped[name]?.length ?? 0;
 
   const fmt = (cents: number) =>
     new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(cents / 100);
@@ -221,6 +315,73 @@ export default async function AdminMenuPage({
           {successMsg}
         </div>
       )}
+
+      {/* Manage categories */}
+      <details className="rounded-[14px] border border-slate-100 bg-white overflow-hidden">
+        <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">
+          <span className="text-[13px] font-semibold text-ink">🗂 Manage categories</span>
+          <span className="text-[11px] text-slate-400">tap to expand</span>
+        </summary>
+        <div className="px-4 pb-4 border-t border-slate-50 pt-3 space-y-3">
+          {/* Create */}
+          <form action={createCategory} className="flex items-end gap-2">
+            <div className="flex-1">
+              <label className="text-[11px] text-slate-500 mb-1 block">New category</label>
+              <input name="name" required placeholder="e.g. Wraps & Bowls"
+                className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
+            </div>
+            <button type="submit"
+              className="px-4 py-2 rounded-lg bg-brand-700 text-white text-[12px] font-semibold flex-shrink-0">
+              Create
+            </button>
+          </form>
+
+          {/* Existing managed categories */}
+          {managed.length > 0 && (
+            <div className="space-y-1.5">
+              {managed.map((c, i) => {
+                const count = countFor(c.name);
+                return (
+                  <div key={c.id} className="rounded-lg border border-slate-100 px-2.5 py-2 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{categoryIcon(c.name)}</span>
+                      <span className="text-[12px] font-semibold text-ink flex-1 min-w-0 truncate">{c.name}</span>
+                      <span className="text-[10px] text-slate-400 flex-shrink-0">{count} {count === 1 ? "item" : "items"}</span>
+                      <form action={reorderCategory} className="flex items-center gap-1 flex-shrink-0">
+                        <input type="hidden" name="id" value={c.id} />
+                        <button type="submit" name="dir" value="up" disabled={i === 0}
+                          className="w-6 h-6 rounded border border-slate-200 text-[11px] text-slate-600 disabled:opacity-30">↑</button>
+                        <button type="submit" name="dir" value="down" disabled={i === managed.length - 1}
+                          className="w-6 h-6 rounded border border-slate-200 text-[11px] text-slate-600 disabled:opacity-30">↓</button>
+                      </form>
+                      <form action={deleteCategory} className="flex-shrink-0">
+                        <input type="hidden" name="id" value={c.id} />
+                        <button type="submit"
+                          className="px-2 py-1 rounded border border-slate-200 text-[10px] font-semibold text-slate-500 hover:bg-red-50 hover:border-red-200 hover:text-red-700 transition">
+                          Delete
+                        </button>
+                      </form>
+                    </div>
+                    <form action={renameCategory} className="flex items-center gap-1.5">
+                      <input type="hidden" name="from" value={c.name} />
+                      <input name="to" placeholder="Rename to…"
+                        className="flex-1 rounded-lg border border-slate-200 text-[11px] px-2.5 py-1 min-w-0" />
+                      <button type="submit"
+                        className="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 text-[10px] font-semibold flex-shrink-0 hover:bg-slate-200 transition">
+                        Rename
+                      </button>
+                    </form>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          <p className="text-[10px] text-slate-400 leading-relaxed">
+            New categories appear here and in the item dropdowns even before any item uses them.
+            A category must be empty before it can be deleted.
+          </p>
+        </div>
+      </details>
 
       {/* Add item */}
       <details className="rounded-[14px] border border-slate-100 bg-white overflow-hidden">
@@ -263,38 +424,6 @@ export default async function AdminMenuPage({
           <button type="submit"
             className="w-full py-2.5 rounded-lg bg-brand-700 text-white text-[13px] font-semibold">
             Create item
-          </button>
-        </form>
-      </details>
-
-      {/* Rename a category */}
-      <details className="rounded-[14px] border border-slate-100 bg-white overflow-hidden">
-        <summary className="flex items-center justify-between px-4 py-3 cursor-pointer list-none">
-          <span className="text-[13px] font-semibold text-ink">✎ Rename a category</span>
-          <span className="text-[11px] text-slate-400">tap to expand</span>
-        </summary>
-        <form action={renameCategory} className="px-4 pb-4 border-t border-slate-50 pt-3 space-y-2">
-          <p className="text-[11px] text-slate-500 leading-relaxed">
-            Renaming moves every item in that category to the new name.
-          </p>
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="text-[11px] text-slate-500 mb-1 block">Current category</label>
-              <select name="from" className="w-full rounded-lg border-slate-200 text-[13px] py-2">
-                {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-            <div>
-              <label className="text-[11px] text-slate-500 mb-1 block">New name</label>
-              <input name="to" required placeholder="e.g. Wraps & Bowls"
-                className="w-full rounded-lg border-slate-200 text-[13px] px-3 py-2" />
-            </div>
-          </div>
-          <button type="submit"
-            className="w-full py-2.5 rounded-lg bg-brand-700 text-white text-[13px] font-semibold">
-            Rename category
           </button>
         </form>
       </details>

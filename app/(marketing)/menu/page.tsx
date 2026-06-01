@@ -5,7 +5,7 @@ import { AppNav } from "@/components/app-nav";
 import { MenuItemCard } from "@/components/menu/menu-item-card";
 import {
   getItemCategory,
-  getCategoryList,
+  orderedCategoryList,
   categoryMeta,
   categoryAnchorId,
   cleanDescription,
@@ -14,15 +14,18 @@ import {
 export const dynamic = "force-dynamic";
 
 export default async function MenuPage() {
-  const items = await prisma.menuItem.findMany({
-    where: { isActive: true },
-    include: {
-      options: { orderBy: [{ optionType: "asc" }, { sortOrder: "asc" }] },
-    },
-    orderBy: { name: "asc" },
-  });
+  const [items, managed] = await Promise.all([
+    prisma.menuItem.findMany({
+      where: { isActive: true },
+      include: {
+        options: { orderBy: [{ optionType: "asc" }, { sortOrder: "asc" }] },
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.category.findMany({ orderBy: [{ sortOrder: "asc" }, { name: "asc" }] }),
+  ]);
 
-  const categories = getCategoryList(items);
+  const categories = orderedCategoryList(managed.map((c) => c.name), items);
 
   // Group by effective category across the full (defaults + custom) list.
   const grouped = categories.reduce<Record<string, typeof items>>((acc, cat) => {

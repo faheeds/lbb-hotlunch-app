@@ -114,3 +114,26 @@ export function categoryIcon(cat: string): string {
 export function categoryAnchorId(cat: string): string {
   return `cat-${cat.replace(/[^a-z0-9]/gi, "-").toLowerCase()}`;
 }
+
+// Build an ordered category list when an admin-defined (managed) ordering
+// exists: managed names keep their given order; any category present on items
+// but not in the managed list is appended (sorted). Empty managed categories
+// are preserved so they remain visible/manageable even with zero items.
+export function orderedCategoryList(
+  managedNames: string[],
+  items: Categorizable[]
+): string[] {
+  const seen = new Set<string>();
+  const managed: string[] = [];
+  for (const n of managedNames) {
+    const name = n.trim();
+    if (name && !seen.has(name)) {
+      seen.add(name);
+      managed.push(name);
+    }
+  }
+  const orphans = [...new Set(items.map(getItemCategory))]
+    .filter((c) => !seen.has(c))
+    .sort((a, b) => a.localeCompare(b));
+  return [...managed, ...orphans];
+}
