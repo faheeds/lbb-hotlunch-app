@@ -26,7 +26,6 @@ export default async function AdminOrdersPage({
 }) {
   const params = await searchParams;
   const selectedSchoolIds = normalizeMultiValue(params.schoolIds);
-  const selectedDate = params.deliveryDate ?? "";
   const dateFrom = params.dateFrom ?? "";
   const dateTo = params.dateTo ?? "";
   const usingRange = Boolean(dateFrom || dateTo);
@@ -39,6 +38,15 @@ export default async function AdminOrdersPage({
       orderBy: { deliveryDate: "asc" }
     })
   ]);
+
+  // Default the date filter to the nearest upcoming delivery day on first
+  // load; once the user submits the form (deliveryDate present, even empty)
+  // or uses a date range, respect their choice.
+  const todayStr = formatInTimeZone(new Date(), "America/Los_Angeles", "yyyy-MM-dd");
+  const allDates = [...new Set(allDeliveryDates.map((d) => formatInTimeZone(d.deliveryDate, d.school.timezone, "yyyy-MM-dd")))].sort();
+  const nearestUpcoming = allDates.find((v) => v >= todayStr) ?? allDates[allDates.length - 1] ?? "";
+  const selectedDate =
+    params.deliveryDate === undefined && !usingRange ? nearestUpcoming : params.deliveryDate ?? "";
 
   // All delivery-date rows (both schools) on the selected calendar day.
   const matchingDateIds = selectedDate
