@@ -261,8 +261,24 @@ export async function markOrderPaidByCheckoutSession(
   });
 }
 
+// Resolve every DeliveryDate row (across allowed schools) that falls on the
+// given calendar day (yyyy-MM-dd, in each school's timezone). Returns an empty
+// array when the date matches nothing, so callers filter to zero orders rather
+// than all of them.
+export async function resolveDeliveryDateIds(calendarDate?: string): Promise<string[] | undefined> {
+  if (!calendarDate) return undefined;
+  const dates = await prisma.deliveryDate.findMany({
+    where: { school: { slug: { in: [...ALLOWED_SCHOOL_SLUGS] } } },
+    include: { school: true }
+  });
+  return dates
+    .filter((d) => formatInTimeZone(d.deliveryDate, d.school.timezone, "yyyy-MM-dd") === calendarDate)
+    .map((d) => d.id);
+}
+
 export async function listOrders(filters: {
   deliveryDateId?: string;
+  deliveryDateIds?: string[];
   schoolId?: string;
   schoolIds?: string[];
   status?: string;
@@ -270,7 +286,8 @@ export async function listOrders(filters: {
 }) {
   const where: Prisma.OrderWhereInput = {};
 
-  if (filters.deliveryDateId) where.deliveryDateId = filters.deliveryDateId;
+  if (filters.deliveryDateIds) where.deliveryDateId = { in: filters.deliveryDateIds };
+  else if (filters.deliveryDateId) where.deliveryDateId = filters.deliveryDateId;
   if (filters.schoolIds?.length) {
     where.schoolId = { in: filters.schoolIds };
   } else if (filters.schoolId) {

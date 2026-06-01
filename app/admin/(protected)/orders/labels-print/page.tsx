@@ -1,18 +1,26 @@
 import { OrderStatus } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import { mapOrderToLabelRows } from "@/lib/pdf/labels";
+import { resolveDeliveryDateIds } from "@/lib/orders";
 
 export const dynamic = "force-dynamic";
 
 export default async function LabelsPrintPage({
   searchParams
 }: {
-  searchParams: Promise<{ deliveryDateId?: string }>;
+  searchParams: Promise<{ deliveryDate?: string; schoolIds?: string | string[] }>;
 }) {
   const params = await searchParams;
+  const schoolIds = Array.isArray(params.schoolIds)
+    ? params.schoolIds.filter(Boolean)
+    : params.schoolIds
+    ? [params.schoolIds]
+    : [];
+  const deliveryDateIds = await resolveDeliveryDateIds(params.deliveryDate);
   const orders = await prisma.order.findMany({
     where: {
-      deliveryDateId: params.deliveryDateId ?? undefined,
+      deliveryDateId: deliveryDateIds ? { in: deliveryDateIds } : undefined,
+      schoolId: schoolIds.length ? { in: schoolIds } : undefined,
       status: OrderStatus.PAID,
       archivedAt: null
     },

@@ -4,6 +4,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/db";
 import { formatList } from "@/lib/utils";
 import { assertAdminApiRequest } from "@/lib/admin-auth";
+import { resolveDeliveryDateIds } from "@/lib/orders";
 
 export async function GET(request: Request) {
   try {
@@ -12,11 +13,14 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
   const { searchParams } = new URL(request.url);
-  const deliveryDateId = searchParams.get("deliveryDateId");
+  const deliveryDate = searchParams.get("deliveryDate") ?? undefined;
+  const schoolIds = searchParams.getAll("schoolIds").filter(Boolean);
+  const deliveryDateIds = await resolveDeliveryDateIds(deliveryDate);
 
   const orders = await prisma.order.findMany({
     where: {
-      deliveryDateId: deliveryDateId ?? undefined,
+      deliveryDateId: deliveryDateIds ? { in: deliveryDateIds } : undefined,
+      schoolId: schoolIds.length ? { in: schoolIds } : undefined,
       status: OrderStatus.PAID,
       archivedAt: null
     },

@@ -16,7 +16,7 @@ async function createDeliveryDate(formData: FormData) {
       orderingOpen: formData.get("orderingOpen") === "on",
       notes: formData.get("notes")
     });
-    await prisma.deliveryDate.create({
+    const created = await prisma.deliveryDate.create({
       data: {
         schoolId: parsed.schoolId,
         deliveryDate: fromZonedTime(`${parsed.deliveryDate} 11:00:00`, "America/Los_Angeles"),
@@ -25,6 +25,20 @@ async function createDeliveryDate(formData: FormData) {
         notes: parsed.notes || null
       }
     });
+    // Make every active menu item available on the new date by default; the
+    // admin can uncheck anything that's out via 'Edit available items'.
+    const activeItems = await prisma.menuItem.findMany({ where: { isActive: true }, select: { id: true } });
+    if (activeItems.length) {
+      await prisma.deliveryMenuItem.createMany({
+        data: activeItems.map((item) => ({
+          deliveryDateId: created.id,
+          menuItemId: item.id,
+          schoolId: parsed.schoolId,
+          isAvailable: true
+        })),
+        skipDuplicates: true
+      });
+    }
     revalidatePath("/admin/delivery-dates");
   } catch (err) {
     console.error("createDeliveryDate error:", err);
@@ -145,6 +159,9 @@ export default async function DeliveryDatesPage() {
           <label className="flex items-center gap-2 text-[12px] text-slate-600 cursor-pointer">
             <input type="checkbox" name="orderingOpen" defaultChecked className="rounded" /> Open for ordering
           </label>
+          <p className="text-[10px] text-slate-400 leading-relaxed">
+            All active menu items are added to this date automatically. After creating, expand the date and use “Edit available items” to remove anything that's out.
+          </p>
           <button type="submit" className="w-full py-2.5 rounded-lg bg-brand-700 text-white text-[13px] font-semibold">
             Create delivery date
           </button>
@@ -235,7 +252,7 @@ export default async function DeliveryDatesPage() {
                   {/* Attach menu items */}
                   <details className="rounded-lg border border-slate-100 overflow-hidden">
                     <summary className="px-3 py-2 text-[12px] text-brand-700 font-medium cursor-pointer list-none">
-                      + Attach more menu items
+                      ✎ Edit available items (uncheck what's out)
                     </summary>
                     <form action={attachMenuItems} className="px-3 pb-3 border-t border-slate-50 pt-2 space-y-2">
                       <input type="hidden" name="deliveryDateId" value={date.id} />
